@@ -117,9 +117,9 @@
 <body class="h-screen w-screen flex flex-col select-none">
 
     <!-- ========================================================================= -->
-    <!-- BARRE SUPÉRIEURE : STATUT RTK, CENTIPEDE, PLATEFORME ACTIVE & ACTIONS     -->
+    <!-- BARRE SUPÉRIEURE : STATUT CLAIR + BOUTON "VOIR QUE LA CARTE"              -->
     <!-- ========================================================================= -->
-    <header class="h-14 bg-slate-900/95 border-b border-slate-800 px-3 flex items-center justify-between gap-2 z-30 shrink-0">
+    <header id="main-header" class="h-14 bg-slate-900/95 border-b border-slate-800 px-3 flex items-center justify-between gap-2 z-30 shrink-0">
         <!-- Logo + Plateforme active -->
         <div class="flex items-center gap-2.5 min-w-0">
             <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
@@ -140,36 +140,37 @@
             </div>
         </div>
 
-        <!-- Indicateurs télémétrie GNSS & Centipede -->
+        <!-- VOYANTS DE CONNEXION CLAIRS + BOUTON CARTE SEULE -->
         <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
-            <!-- Bouton Débloquer USB si intégré dans un iframe -->
-            <button onclick="openStandaloneWindow()" id="btn-standalone-win" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition" title="Ouvrir dans un onglet autonome pour débloquer les ports USB / Série">
-                <i class="fa-solid fa-up-right-from-square"></i>
-                <span class="hidden md:inline">Débloquer USB</span>
+
+            <!-- BOUTON VOIR QUE LA CARTE -->
+            <button onclick="toggleMapOnlyMode()" id="btn-header-map-only" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs shadow-lg shadow-sky-600/20 flex items-center gap-1.5 transition" title="Masquer le menu pour ne voir que la carte">
+                <i class="fa-solid fa-map"></i>
+                <span>Voir que la carte</span>
             </button>
 
-            <!-- Statut Correction Centipede RTK -->
-            <button onclick="switchStep(1)" id="header-centipede-badge" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono-tech flex items-center gap-1.5 hover:border-emerald-500/50 transition">
+            <!-- Voyant 1 : État réel de l'Antenne -->
+            <button onclick="switchStep(1); if(state.mapOnlyMode) toggleMapOnlyMode();" id="header-antenna-badge" class="px-2.5 py-1.5 rounded-lg bg-rose-950/80 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center gap-1.5 transition" title="Cliquez pour gérer la connexion de l'antenne">
+                <span id="antenna-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span id="antenna-header-text">Antenne : NON CONNECTÉE (Simu)</span>
+            </button>
+
+            <!-- Voyant 2 : Statut Correction Centipede RTK -->
+            <button onclick="switchStep(1); if(state.mapOnlyMode) toggleMapOnlyMode();" id="header-centipede-badge" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono-tech flex items-center gap-1.5 hover:border-emerald-500/50 transition">
                 <span id="centipede-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                <span id="centipede-header-text">NTRIP: OFF</span>
+                <span id="centipede-header-text">Centipede: OFF</span>
             </button>
 
-            <!-- Statut Fix GNSS -->
+            <!-- Voyant 3 : Précision GNSS -->
             <div class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 font-mono-tech text-xs">
-                <span id="fix-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 rtk-pulse"></span>
+                <span id="fix-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                 <div>
-                    <div id="fix-type-badge" class="font-extrabold text-emerald-400 text-[11px] leading-tight">SIMU RTK FIX</div>
+                    <div id="fix-type-badge" class="font-extrabold text-amber-400 text-[11px] leading-tight">MODE SIMULATION</div>
                     <div class="text-[9px] text-slate-400 leading-none">
-                        σ=<span id="accuracy-val">1.2</span>cm • Sat:<span id="sat-count">18</span>
+                        Précision: <span id="accuracy-val">1.2</span>cm • Sat:<span id="sat-count">18</span>
                     </div>
                 </div>
             </div>
-
-            <!-- Bouton connexion rapide Étape 1 -->
-            <button onclick="switchStep(1)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-1.5 transition">
-                <i class="fa-solid fa-plug"></i>
-                <span class="hidden sm:inline">Connecter FT232R + Centipede</span>
-            </button>
 
             <!-- Audio Bip d'approche -->
             <button onclick="toggleAudioBeep()" id="btn-audio-toggle" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 flex items-center justify-center text-xs transition" title="Activer/Désactiver le bip sonore centimétrique">
@@ -183,14 +184,14 @@
     <!-- ========================================================================= -->
     <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
 
-        <!-- PANNEAU GAUCHE : PROCÉDURE EN 4 ÉTAPES -->
-        <aside class="w-full lg:w-[480px] xl:w-[520px] h-[54%] lg:h-full bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col z-20 shrink-0">
+        <!-- PANNEAU GAUCHE : PROCÉDURE EN 4 ÉTAPES (MASQUABLE EN MODE "CARTE SEULE") -->
+        <aside id="main-sidebar" class="w-full lg:w-[460px] xl:w-[500px] h-[52%] lg:h-full bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col z-20 shrink-0 transition-all">
 
             <!-- Navigation des 4 étapes -->
             <div class="grid grid-cols-4 gap-1 p-2 bg-slate-950/90 border-b border-slate-800 shrink-0">
                 <button onclick="switchStep(1)" id="step-btn-1" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center gap-0.5 border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 transition">
                     <span class="text-[9px] uppercase tracking-wider opacity-80">Étape 1</span>
-                    <span class="truncate"><i class="fa-solid fa-satellite-dish mr-1"></i>Antenne & RTK</span>
+                    <span class="truncate"><i class="fa-solid fa-satellite-dish mr-1"></i>Connexion</span>
                 </button>
                 <button onclick="switchStep(2)" id="step-btn-2" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200 transition">
                     <span class="text-[9px] uppercase tracking-wider opacity-80">Étape 2</span>
@@ -207,40 +208,61 @@
             </div>
 
             <!-- ================================================================= -->
-            <!-- CONTENU ÉTAPE 1 : CONNEXION ANTENNE FT232R & RÉSEAU CENTIPEDE RTK -->
+            <!-- CONTENU ÉTAPE 1 : CONNEXION SIMPLIFIÉE & DIAGNOSTIC EN DIRECT     -->
             <!-- ================================================================= -->
             <div id="step-panel-1" class="flex-1 overflow-y-auto p-3 space-y-3">
 
-                <!-- 1. RÉSEAU CENTIPEDE RTK -->
-                <div class="bg-slate-800/70 border border-emerald-500/40 rounded-xl p-3 space-y-2.5">
+                <!-- TABLEAU DE CONTRÔLE VISUEL : SUIS-JE BIEN CONNECTÉ ? -->
+                <div id="connection-status-card" class="rounded-xl p-3 border-2 border-rose-500/60 bg-rose-950/30 space-y-2.5 transition">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-tower-broadcast"></i> 1. Réseau Centipede RTK (NTRIP)
-                        </h3>
-                        <button onclick="findNearestCentipedeBase()" class="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold transition">
-                            <i class="fa-solid fa-location-crosshairs mr-1"></i>Base la + proche
+                        <div class="flex items-center gap-2">
+                            <div id="status-main-icon" class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-sm">
+                                <i class="fa-solid fa-plug-circle-xmark"></i>
+                            </div>
+                            <div>
+                                <div id="status-main-title" class="text-xs font-extrabold uppercase tracking-wide text-rose-300">
+                                    ANTENNE NON CONNECTÉE (MODE SIMULATION)
+                                </div>
+                                <div id="status-main-sub" class="text-[11px] text-slate-300">
+                                    Vous déplacez actuellement un point fictif. Branchez l'antenne ci-dessous.
+                                </div>
+                            </div>
+                        </div>
+                        <span id="bridge-status-pill" class="hidden text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono-tech">Pont: Inactif</span>
+                    </div>
+
+                    <!-- 3 Voyants simples -->
+                    <div class="grid grid-cols-3 gap-1.5 pt-1">
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 text-center">
+                            <div class="text-[9px] text-slate-400 uppercase font-bold">1. Antenne USB</div>
+                            <div id="diag-antenna" class="text-xs font-extrabold text-rose-400 mt-0.5">Débranchée</div>
+                        </div>
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 text-center">
+                            <div class="text-[9px] text-slate-400 uppercase font-bold">2. Réseau Centipede</div>
+                            <div id="diag-centipede" class="text-xs font-extrabold text-slate-400 mt-0.5">En attente</div>
+                        </div>
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 text-center">
+                            <div class="text-[9px] text-slate-400 uppercase font-bold">3. Signal Reçu</div>
+                            <div id="diag-signal-age" class="text-xs font-mono-tech font-extrabold text-amber-400 mt-0.5">Simulation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÉTAPE A : CHOISIR LA BASE CENTIPEDE LA PLUS PROCHE -->
+                <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center justify-center">1</span>
+                            Base Centipede RTK à utiliser :
+                        </label>
+                        <button onclick="findNearestCentipedeBase()" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold transition">
+                            <i class="fa-solid fa-location-crosshairs mr-1"></i>Choisir la + proche auto
                         </button>
                     </div>
 
                     <div class="grid grid-cols-12 gap-2">
-                        <div class="col-span-6">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">Caster Centipede</label>
-                            <input id="ntrip-host" type="text" value="caster.centipede.fr" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-white">
-                        </div>
-                        <div class="col-span-3">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">Port</label>
-                            <input id="ntrip-port" type="number" value="2101" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-white">
-                        </div>
-                        <div class="col-span-3">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">User / Pass</label>
-                            <input id="ntrip-user" type="text" value="centipede" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-emerald-300">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-12 gap-2 items-end">
-                        <div class="col-span-7">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">Point de montage (Base Centipede)</label>
-                            <select id="ntrip-mount-select" onchange="onSelectCentipedeBase(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono-tech text-white">
+                        <div class="col-span-8">
+                            <select id="ntrip-mount-select" onchange="onSelectCentipedeBase(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs font-mono-tech text-white font-bold">
                                 <option value="BOVES">BOVES — Boves / Somme (80)</option>
                                 <option value="AMIENS">AMIENS — Amiens (80)</option>
                                 <option value="ESTREES">ESTREES — Estrées-Mons (80)</option>
@@ -253,75 +275,102 @@
                                 <option value="ROUEN">ROUEN — Rouen (76)</option>
                             </select>
                         </div>
-                        <div class="col-span-5">
-                            <label class="text-[10px] text-slate-400 block mb-0.5">Ou saisir le code exact :</label>
-                            <input id="ntrip-mount" type="text" value="BOVES" class="w-full bg-slate-900 border border-emerald-500/50 rounded-lg px-2 py-1.5 text-xs font-mono-tech text-emerald-300 font-bold uppercase">
+                        <div class="col-span-4">
+                            <input id="ntrip-mount" type="text" value="BOVES" title="Code de la base Centipede" placeholder="Code base" class="w-full bg-slate-900 border border-emerald-500/50 rounded-lg px-2.5 py-2 text-xs font-mono-tech text-emerald-300 font-bold uppercase text-center">
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. PASSERELLE AUTOMATIQUE WINDOWS (.BAT) FT232R + CENTIPEDE -->
-                <div class="bg-blue-950/40 border border-blue-500/40 rounded-xl p-3 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-blue-300 flex items-center gap-1.5">
-                            <i class="fa-brands fa-windows"></i> 2. Connecteur Direct PC (FT232R USB + Centipede)
-                        </h3>
-                        <span id="bridge-status-pill" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono-tech">Pont: Inactif</span>
+                <!-- ÉTAPE B : BRANCHER L'ANTENNE (MÉTHODES SIMPLIFIÉES) -->
+                <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3 space-y-2.5">
+                    <div class="text-xs font-extrabold text-sky-400 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-sky-500 text-slate-950 font-black text-[11px] flex items-center justify-center">2</span>
+                        Connecter votre antenne GPS :
                     </div>
-                    <p class="text-[11px] text-slate-300 leading-relaxed">
-                        Connecte automatiquement votre antenne <strong class="text-white">FT232R USB UART</strong> au serveur <strong class="text-emerald-300">caster.centipede.fr:2101</strong>, injecte les corrections <code class="text-amber-300">RTCM3</code> dans l'antenne et envoie la position centimétrique à cette page.
-                    </p>
+
+                    <!-- OPTION 1 : PC WINDOWS AVEC CÂBLE USB FT232R + CENTIPEDE AUTOMATIQUE -->
+                    <div class="bg-blue-950/40 border border-blue-500/40 rounded-xl p-2.5 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <i class="fa-brands fa-windows text-blue-400"></i> Sur PC Windows (Antenne USB + Centipede 1 cm)
+                            </span>
+                            <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-semibold">Recommandé</span>
+                        </div>
+                        <p class="text-[11px] text-slate-300 leading-snug">
+                            Cliquez sur le bouton ci-dessous et <strong>ouvrez le petit fichier téléchargé</strong> : la page détectera automatiquement votre antenne et passera au <strong>Vert</strong>.
+                        </p>
+                        <button onclick="downloadWindowsCentipedeBridge()" class="w-full py-2.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                            <i class="fa-solid fa-bolt"></i> Lancer la connexion automatique USB + Centipede
+                        </button>
+                    </div>
+
+                    <!-- OPTION 2 : CONNEXION DIRECTE OU TABLETTE -->
                     <div class="grid grid-cols-2 gap-2">
-                        <button onclick="downloadWindowsCentipedeBridge()" class="py-2 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
-                            <i class="fa-solid fa-download"></i> 1. Télécharger (.BAT)
+                        <button onclick="connectDirectUSBAuto()" class="py-2.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-600 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 transition">
+                            <i class="fa-brands fa-usb text-amber-400 text-base"></i>
+                            <span>Port USB Direct</span>
+                            <span class="text-[9px] text-slate-400 font-normal">Sans Centipede intégré</span>
                         </button>
-                        <button onclick="connectLocalBridge()" class="py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
-                            <i class="fa-solid fa-link"></i> 2. Relier au Pont Local
+                        <button onclick="connectOSGeolocation()" class="py-2.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-600 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-tablet-screen-button text-emerald-400 text-base"></i>
+                            <span>GPS Tablette / Android</span>
+                            <span class="text-[9px] text-slate-400 font-normal">SW Maps / Lefebure</span>
+                        </button>
+                    </div>
+
+                    <!-- OPTION 3 : SIMULATION BUREAU -->
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-700/70">
+                        <span class="text-[11px] text-slate-400">Préparation au bureau sans antenne :</span>
+                        <button onclick="enableSimulationMode()" class="px-3 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-200 font-bold text-[11px] flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-gamepad"></i> Activer Simu Bureau
                         </button>
                     </div>
                 </div>
 
-                <!-- 3. CONNEXION MATÉRIELLE DIRECTE DANS LE NAVIGATEUR -->
-                <div class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-3 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                            <i class="fa-brands fa-usb"></i> 3. Connexion Directe Navigateur (USB / Série / OS)
-                        </h3>
-                        <div class="flex items-center gap-1">
-                            <span class="text-[10px] text-slate-400">Bauds:</span>
-                            <select id="serial-baud" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] font-mono-tech text-white">
-                                <option value="115200" selected>115200</option>
-                                <option value="38400">38400</option>
-                                <option value="57600">57600</option>
-                                <option value="9600">9600</option>
-                            </select>
+                <!-- PARAMÈTRES TECHNIQUES AVANCÉS (MASQUÉS PAR DÉFAUT POUR NE PAS COMPLEXIFIER) -->
+                <details class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 text-xs">
+                    <summary class="cursor-pointer font-bold text-slate-400 hover:text-slate-200 select-none flex items-center justify-between">
+                        <span><i class="fa-solid fa-gear mr-1.5"></i>Paramètres techniques avancés & Trame NMEA</span>
+                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                    </summary>
+                    <div class="mt-2.5 space-y-2 pt-2 border-t border-slate-800">
+                        <div class="grid grid-cols-12 gap-2">
+                            <div class="col-span-5">
+                                <label class="text-[10px] text-slate-400 block mb-0.5">Serveur Caster</label>
+                                <input id="ntrip-host" type="text" value="caster.centipede.fr" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono-tech text-white">
+                            </div>
+                            <div class="col-span-3">
+                                <label class="text-[10px] text-slate-400 block mb-0.5">Port</label>
+                                <input id="ntrip-port" type="number" value="2101" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono-tech text-white">
+                            </div>
+                            <div class="col-span-4">
+                                <label class="text-[10px] text-slate-400 block mb-0.5">Vitesse USB (Bauds)</label>
+                                <select id="serial-baud" class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-[11px] font-mono-tech text-white">
+                                    <option value="115200" selected>115200 bauds</option>
+                                    <option value="38400">38400 bauds</option>
+                                    <option value="57600">57600 bauds</option>
+                                    <option value="9600">9600 bauds</option>
+                                </select>
+                            </div>
+                        </div>
+                        <input id="ntrip-user" type="hidden" value="centipede">
+                        <div class="flex gap-1.5 pt-1">
+                            <button onclick="openStandaloneWindow()" class="px-2 py-1 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold">
+                                <i class="fa-solid fa-up-right-from-square mr-1"></i>Ouvrir dans un onglet débloqué
+                            </button>
+                            <button onclick="connectWebUSB_FT232R()" class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px]">
+                                Forcer WebUSB FTDI
+                            </button>
+                        </div>
+                        <div class="bg-slate-900 rounded p-2 font-mono-tech text-[10px] space-y-1">
+                            <div class="flex items-center justify-between text-slate-400">
+                                <span>Trame GPS reçue :</span>
+                                <span id="nmea-byte-counter" class="text-amber-400">Aucune trame réelle (Simulation)</span>
+                            </div>
+                            <div id="nmea-live-line" class="text-slate-300 truncate">En attente de l'antenne...</div>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="connectWebUSB_FT232R()" class="py-2 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-                            <i class="fa-solid fa-microchip"></i> Pilote WebUSB FT232R
-                        </button>
-                        <button onclick="connectWebSerialPort()" class="py-2 px-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/50 text-sky-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-                            <i class="fa-solid fa-plug-circle-bolt"></i> Port COM (WebSerial)
-                        </button>
-                        <button onclick="connectOSGeolocation()" class="py-2 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 text-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-                            <i class="fa-solid fa-location-dot"></i> GPS Externe OS / Android
-                        </button>
-                        <button onclick="enableSimulationMode()" class="py-2 px-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-200 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-                            <i class="fa-solid fa-gamepad"></i> Mode Simu RTK (Bureau)
-                        </button>
-                    </div>
-
-                    <!-- Console NMEA en direct -->
-                    <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 font-mono-tech text-[10px] space-y-1">
-                        <div class="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-1">
-                            <span>Flux NMEA ($GNGGA / $GPGGA)</span>
-                            <span id="nmea-byte-counter" class="text-emerald-400">Prêt</span>
-                        </div>
-                        <div id="nmea-live-line" class="text-slate-300 truncate">$GNGGA,140500.00,4950.59200,N,00223.19600,E,4,18,0.6,68.4,M,47.1,M,1.0,0000*7A</div>
-                    </div>
-                </div>
+                </details>
 
                 <button onclick="switchStep(2)" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition">
                     Passer à l'Étape 2 : Ligne A-B & Plateforme <i class="fa-solid fa-arrow-right"></i>
@@ -752,6 +801,14 @@
 
                 <!-- Contrôles rapides sur la carte (Haut Gauche) -->
                 <div class="absolute top-3 left-3 z-[400] flex flex-wrap gap-1.5">
+                    <!-- Bouton Basculer Menu / Voir que la carte -->
+                    <button onclick="toggleMapOnlyMode()" id="btn-map-only-floating" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white border border-sky-400 text-xs font-extrabold shadow-xl flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-maximize"></i> <span id="lbl-map-only-floating">Voir que la carte</span>
+                    </button>
+                    <!-- Bouton Mode Carte 100% Pure (masque même l'entête et le bandeau de guidage) -->
+                    <button onclick="togglePureMapMode()" id="btn-pure-map" class="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold shadow-lg flex items-center gap-1.5 transition" title="Masquer ou afficher les bandeaux du haut">
+                        <i class="fa-solid fa-eye-slash text-amber-400"></i> <span class="hidden sm:inline">Masquer bandeaux</span>
+                    </button>
                     <button onclick="fitMapToTrial()" class="px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 text-xs font-bold shadow-lg flex items-center gap-1.5 transition">
                         <i class="fa-solid fa-expand text-emerald-400"></i> Centrer Essai
                     </button>
@@ -907,11 +964,163 @@
             mapPickMode: null, // 'A' ou 'B'
             showCentipedeBasesOnMap: true,
             audioEnabled: false,
+            mapOnlyMode: false,
+            pureMapMode: false,
+            lastRealPacketTime: 0,
             // Ports matériels navigateur
             serialPort: null,
             usbDevice: null,
             osWatchId: null
         };
+
+        // ============================================================================
+        // 2B. MODE "VOIR QUE LA CARTE" & DIAGNOSTIC VISUEL DE CONNEXION
+        // ============================================================================
+        function toggleMapOnlyMode() {
+            state.mapOnlyMode = !state.mapOnlyMode;
+            const sidebar = document.getElementById('main-sidebar');
+            const btnHeader = document.getElementById('btn-header-map-only');
+            const lblFloating = document.getElementById('lbl-map-only-floating');
+            const btnFloating = document.getElementById('btn-map-only-floating');
+
+            if (state.mapOnlyMode) {
+                sidebar.classList.add('hidden');
+                if (btnHeader) {
+                    btnHeader.innerHTML = '<i class="fa-solid fa-sliders"></i> <span>Afficher Menu</span>';
+                    btnHeader.className = 'px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-lg flex items-center gap-1.5 transition';
+                }
+                if (lblFloating) lblFloating.textContent = 'Afficher le Menu';
+                if (btnFloating) {
+                    btnFloating.className = 'px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-300 text-xs font-extrabold shadow-xl flex items-center gap-1.5 transition';
+                }
+            } else {
+                sidebar.classList.remove('hidden');
+                if (btnHeader) {
+                    btnHeader.innerHTML = '<i class="fa-solid fa-map"></i> <span>Voir que la carte</span>';
+                    btnHeader.className = 'px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs shadow-lg shadow-sky-600/20 flex items-center gap-1.5 transition';
+                }
+                if (lblFloating) lblFloating.textContent = 'Voir que la carte';
+                if (btnFloating) {
+                    btnFloating.className = 'px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white border border-sky-400 text-xs font-extrabold shadow-xl flex items-center gap-1.5 transition';
+                }
+            }
+
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 150);
+        }
+
+        function togglePureMapMode() {
+            state.pureMapMode = !state.pureMapMode;
+            const header = document.getElementById('main-header');
+            const sidebar = document.getElementById('main-sidebar');
+            const hudBar = document.querySelector('main > div:first-child');
+            const btnPure = document.getElementById('btn-pure-map');
+
+            if (state.pureMapMode) {
+                header.classList.add('hidden');
+                sidebar.classList.add('hidden');
+                if (hudBar) hudBar.classList.add('hidden');
+                btnPure.innerHTML = '<i class="fa-solid fa-eye text-emerald-400"></i> <span>Afficher bandeaux</span>';
+            } else {
+                header.classList.remove('hidden');
+                if (!state.mapOnlyMode) sidebar.classList.remove('hidden');
+                if (hudBar) hudBar.classList.remove('hidden');
+                btnPure.innerHTML = '<i class="fa-solid fa-eye-slash text-amber-400"></i> <span class="hidden sm:inline">Masquer bandeaux</span>';
+            }
+
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 150);
+        }
+
+        // Met à jour tous les voyants pour savoir immédiatement si on est connecté ou non
+        function refreshConnectionStatusUI() {
+            const isSim = (state.rover.source === 'simulation');
+            const now = Date.now();
+            const ageSec = state.lastRealPacketTime ? ((now - state.lastRealPacketTime) / 1000) : 999;
+            const isReceivingLive = !isSim && ageSec < 5.0;
+
+            const card = document.getElementById('connection-status-card');
+            const icon = document.getElementById('status-main-icon');
+            const title = document.getElementById('status-main-title');
+            const sub = document.getElementById('status-main-sub');
+            const diagAnt = document.getElementById('diag-antenna');
+            const diagCent = document.getElementById('diag-centipede');
+            const diagSig = document.getElementById('diag-signal-age');
+
+            const headerAntBadge = document.getElementById('header-antenna-badge');
+            const headerAntDot = document.getElementById('antenna-dot');
+            const headerAntText = document.getElementById('antenna-header-text');
+            const simDpad = document.getElementById('sim-dpad');
+
+            if (isReceivingLive) {
+                // ANTENNE BIEN CONNECTÉE EN TEMPS RÉEL
+                if (simDpad) simDpad.classList.add('hidden');
+                const srcName = state.rover.source === 'bridge' ? 'USB FT232R + Pont' :
+                                state.rover.source === 'webserial' ? 'USB Port COM' :
+                                state.rover.source === 'webusb' ? 'USB Direct FT232R' : 'GPS Appareil';
+
+                card.className = 'rounded-xl p-3 border-2 border-emerald-500 bg-emerald-950/30 space-y-2.5 transition';
+                icon.className = 'w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 text-sm';
+                icon.innerHTML = '<i class="fa-solid fa-check-circle"></i>';
+                title.className = 'text-xs font-extrabold uppercase tracking-wide text-emerald-300';
+                title.textContent = `ANTENNE CONNECTÉE (${srcName})`;
+                sub.textContent = `Position GPS reçue en direct • Précision actuelle : ${state.rover.accuracyCm.toFixed(1)} cm (${state.rover.fixLabel})`;
+
+                diagAnt.textContent = 'Connectée (OK)';
+                diagAnt.className = 'text-xs font-extrabold text-emerald-400 mt-0.5';
+
+                if (state.bridge.connected) {
+                    diagCent.textContent = `Actif (${state.ntrip.mount})`;
+                    diagCent.className = 'text-xs font-extrabold text-emerald-400 mt-0.5';
+                } else if (state.rover.fixQuality === 4 || state.rover.fixQuality === 5) {
+                    diagCent.textContent = 'Correction RTK OK';
+                    diagCent.className = 'text-xs font-extrabold text-emerald-400 mt-0.5';
+                } else {
+                    diagCent.textContent = 'Non relié';
+                    diagCent.className = 'text-xs font-extrabold text-amber-400 mt-0.5';
+                }
+
+                diagSig.textContent = `Il y a ${ageSec.toFixed(1)}s`;
+                diagSig.className = 'text-xs font-mono-tech font-extrabold text-emerald-400 mt-0.5';
+
+                headerAntBadge.className = 'px-2.5 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500 text-emerald-200 text-xs font-extrabold flex items-center gap-1.5 transition';
+                headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 rtk-pulse';
+                headerAntText.textContent = `Antenne : CONNECTÉE (${srcName})`;
+            } else {
+                // MODE SIMULATION OU AUCUN SIGNAL
+                if (simDpad) simDpad.classList.remove('hidden');
+                card.className = 'rounded-xl p-3 border-2 border-rose-500/60 bg-rose-950/30 space-y-2.5 transition';
+                icon.className = 'w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-sm';
+                icon.innerHTML = '<i class="fa-solid fa-plug-circle-xmark"></i>';
+                title.className = 'text-xs font-extrabold uppercase tracking-wide text-rose-300';
+                title.textContent = 'ANTENNE NON CONNECTÉE (MODE SIMULATION)';
+                sub.textContent = 'Vous êtes en mode simulation. Utilisez le bouton bleu ci-dessous pour brancher l\'antenne.';
+
+                diagAnt.textContent = 'Non connectée';
+                diagAnt.className = 'text-xs font-extrabold text-rose-400 mt-0.5';
+                diagCent.textContent = 'Déconnecté';
+                diagCent.className = 'text-xs font-extrabold text-slate-400 mt-0.5';
+                diagSig.textContent = 'Simulation';
+                diagSig.className = 'text-xs font-mono-tech font-extrabold text-amber-400 mt-0.5';
+
+                headerAntBadge.className = 'px-2.5 py-1.5 rounded-lg bg-rose-950/80 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center gap-1.5 transition';
+                headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                headerAntText.textContent = 'Antenne : NON CONNECTÉE (Simu)';
+            }
+        }
+
+        // Connexion USB 1-Clic : essaie d'abord WebSerial (Port COM), sinon WebUSB FT232R
+        async function connectDirectUSBAuto() {
+            if (navigator.serial) {
+                await connectWebSerialPort();
+            } else if (navigator.usb) {
+                await connectWebUSB_FT232R();
+            } else {
+                showToast("Votre navigateur bloque l'USB direct : utilisez le bouton bleu Windows (.BAT) ci-dessus.", "amber");
+            }
+        }
 
         // ============================================================================
         // 3. OUTILS GÉODÉSIQUES CENTIMÉTRIQUES (WGS84 <-> MÈTRES LOCAUX & LAMBERT-93)
@@ -2212,30 +2421,37 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             a.download = `Connecteur_FT232R_Centipede_${mount}.bat`;
             a.click();
             URL.revokeObjectURL(url);
-            showToast("Connecteur .BAT téléchargé ! Lancez-le puis cliquez sur « 2. Relier au Pont Local ».", "emerald");
+            // Lance automatiquement l'écoute en arrière-plan dès le téléchargement !
+            connectLocalBridge(true);
+            showToast("Fichier téléchargé ! Ouvrez-le : la connexion se fera toute seule dès qu'il est lancé.", "emerald");
         }
 
-        function connectLocalBridge() {
+        function connectLocalBridge(silent = false) {
             if (state.bridge.pollTimer) clearInterval(state.bridge.pollTimer);
-            showToast("Recherche du pont local sur 127.0.0.1:8765...", "sky");
+            if (!silent) showToast("Recherche automatique de l'antenne sur le PC...", "sky");
 
             state.bridge.pollTimer = setInterval(async () => {
                 try {
                     const res = await fetch('http://127.0.0.1:8765/', { cache: 'no-store' });
                     const data = await res.json();
                     if (data && data.gga) {
+                        const wasConnected = state.bridge.connected;
                         state.bridge.connected = true;
                         state.rover.source = 'bridge';
+                        state.lastRealPacketTime = Date.now();
                         document.getElementById('bridge-status-pill').textContent = `Pont: Actif (${data.mount})`;
                         document.getElementById('bridge-status-pill').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono-tech';
-                        document.getElementById('centipede-header-text').textContent = `NTRIP: ${data.mount} (${data.rtcm} B)`;
-                        document.getElementById('centipede-dot').className = 'w-2 h-2 rounded-full bg-emerald-400 rtk-pulse';
-                        parseNmeaLine(data.gga);
+                        document.getElementById('centipede-header-text').textContent = `Centipede: ${data.mount} (OK)`;
+                        document.getElementById('centipede-dot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 rtk-pulse';
+                        parseNmeaLine(data.gga, true);
+                        if (!wasConnected) {
+                            showToast(`Antenne connectée avec succès au réseau Centipede (${data.mount}) !`, "emerald");
+                        }
                     }
                 } catch (e) {
-                    // En attente du lancement du .bat
+                    state.bridge.connected = false;
                 }
-            }, 250);
+            }, 400);
         }
 
         // Connexion directe WebUSB FT232R (VID 0x0403 / PID 0x6001)
@@ -2333,6 +2549,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             state.rover.source = 'os';
             state.osWatchId = navigator.geolocation.watchPosition(
                 (pos) => {
+                    state.lastRealPacketTime = Date.now();
                     const accCm = (pos.coords.accuracy || 0.02) * 100;
                     updateRoverPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 68, accCm <= 5 ? 4 : 2, 16, 0.7, accCm);
                 },
@@ -2341,20 +2558,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
             );
-            showToast("Réception GPS Externe (OS / Mock Location) activée !", "emerald");
+            showToast("Réception GPS Externe (OS / Tablette) activée !", "emerald");
         }
 
         function enableSimulationMode() {
             state.rover.source = 'simulation';
+            state.lastRealPacketTime = 0;
             updateRoverPosition(state.rover.lat, state.rover.lon, 68.4, 4, 18, 0.6, 1.2);
-            showToast("Mode Simulateur RTK activé (flèches ou clic sur la carte).", "sky");
+            refreshConnectionStatusUI();
+            showToast("Mode Simulation activé (déplacez l'antenne avec les flèches ou en cliquant sur la carte).", "sky");
         }
 
         // Décodeur de trames NMEA ($GNGGA / $GPGGA)
-        function parseNmeaLine(line) {
+        function parseNmeaLine(line, fromRealHardware = true) {
             if (!line || (!line.startsWith('$GNGGA') && !line.startsWith('$GPGGA'))) return;
+            if (fromRealHardware) state.lastRealPacketTime = Date.now();
             document.getElementById('nmea-live-line').textContent = line;
-            document.getElementById('nmea-byte-counter').textContent = `NMEA OK (${new Date().toLocaleTimeString()})`;
+            document.getElementById('nmea-byte-counter').textContent = `Signal direct OK (${new Date().toLocaleTimeString()})`;
 
             const parts = line.split(',');
             if (parts.length < 10) return;
@@ -2379,46 +2599,46 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             const lonMin = parseFloat(rawLon) - lonDeg * 100;
             let lon = lonDeg + lonMin / 60.0;
             if (ew === 'W') lon = -lon;
-
-            updateRoverPosition(lat, lon, alt, fixQ, sats, hdop);
-        }
-
-        function updateRoverPosition(lat, lon, alt, fixQ, sats, hdop, customAccCm = null) {
-            state.rover.lat = lat;
-            state.rover.lon = lon;
-            state.rover.alt = alt;
-            state.rover.fixQuality = fixQ;
-            state.rover.sats = sats;
-            state.rover.hdop = hdop;
-
-            let label = 'GPS SINGLE';
+            let label = 'GPS SIMPLE (>1m)';
             let accCm = 150.0;
             let badgeColor = 'text-rose-400';
+            let dotColor = 'bg-rose-500';
 
-            if (fixQ === 4) {
-                label = state.rover.source === 'simulation' ? 'SIMU RTK FIX' : 'RTK FIX (1cm)';
+            if (state.rover.source === 'simulation') {
+                label = 'MODE SIMULATION';
+                accCm = 1.2;
+                badgeColor = 'text-amber-400';
+                dotColor = 'bg-amber-400';
+            } else if (fixQ === 4) {
+                label = 'RTK FIX (1 cm)';
                 accCm = customAccCm || 1.2;
                 badgeColor = 'text-emerald-400';
+                dotColor = 'bg-emerald-400 rtk-pulse';
             } else if (fixQ === 5) {
-                label = 'RTK FLOAT';
+                label = 'RTK FLOAT (~10 cm)';
                 accCm = customAccCm || 12.0;
                 badgeColor = 'text-amber-400';
+                dotColor = 'bg-amber-400';
             } else if (fixQ === 2) {
-                label = 'DGPS';
+                label = 'DGPS (~40 cm)';
                 accCm = customAccCm || 45.0;
                 badgeColor = 'text-sky-400';
+                dotColor = 'bg-sky-400';
             }
 
             state.rover.fixLabel = label;
             state.rover.accuracyCm = accCm;
 
             const elBadge = document.getElementById('fix-type-badge');
+            const elDot = document.getElementById('fix-dot');
             elBadge.textContent = label;
             elBadge.className = `font-extrabold text-[11px] leading-tight ${badgeColor}`;
+            if (elDot) elDot.className = `w-2.5 h-2.5 rounded-full ${dotColor}`;
             document.getElementById('accuracy-val').textContent = accCm.toFixed(1);
             document.getElementById('sat-count').textContent = sats;
 
             if (roverMarker) roverMarker.setLatLng([lat, lon]);
+            refreshConnectionStatusUI();
             updateGuidanceHUD();
         }
 
@@ -2606,6 +2826,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             renderSavedPlatformsUI();
             renderSavedPlatformsOnMap();
             fitMapToTrial();
+            // Démarrer automatiquement l'écoute silencieuse du pont USB/Centipede et le rafraîchissement des voyants
+            connectLocalBridge(true);
+            refreshConnectionStatusUI();
+            setInterval(refreshConnectionStatusUI, 1000);
         });
     </script>
 </body>
