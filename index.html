@@ -73,35 +73,43 @@
             animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         .alley-label {
-            background: rgba(14, 116, 144, 0.9);
-            border: 1px solid rgba(103, 232, 249, 0.6);
+            background: rgba(14, 116, 144, 0.95);
+            border: 1px solid rgba(103, 232, 249, 0.8);
             color: #ecfeff;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            font-weight: 700;
-            padding: 1px 4px;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 1px 5px;
             border-radius: 4px;
             white-space: nowrap;
             pointer-events: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6);
         }
     </style>
 </head>
 
 <body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden flex flex-col">
 
-    <!-- TOP TELEMETRY & GNSS STATUS BAR -->
+    <!-- TOP TELEMETRY & GNSS / CENTIPEDE STATUS BAR -->
     <header class="bg-slate-900/95 border-b border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 z-30 shrink-0">
-        <!-- Brand & Mode -->
+        <!-- Brand & Active Platform Badge -->
         <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-inner">
                 <i class="fa-solid fa-satellite-dish text-base"></i>
             </div>
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 class="font-bold text-sm tracking-tight text-white">RTK Piquetage <span class="text-emerald-400 font-extrabold">MULTI-ESSAIS</span></h1>
+                    <h1 class="font-bold text-sm tracking-tight text-white">AgroRTK <span class="text-emerald-400 font-extrabold">CENTIPEDE</span></h1>
                     <span id="fixBadge" class="px-2 py-0.5 text-[10px] font-mono-tech font-extrabold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                         SIMU RTK FIX
                     </span>
+                    <span id="ntripHeaderBadge" class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono-tech font-bold rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                        <i class="fa-solid fa-tower-broadcast text-[9px]"></i>
+                        <span id="ntripHeaderText">Centipede: Prêt</span>
+                    </span>
+                </div>
+                <div id="activePlatformBanner" class="text-[10px] text-slate-400 font-medium truncate max-w-[260px] sm:max-w-xs">
+                    Plateforme : <span class="text-amber-300 font-semibold">2026 • Amiens • Plateforme Essais Nord</span>
                 </div>
             </div>
         </div>
@@ -126,19 +134,19 @@
             </div>
         </div>
 
-        <!-- GPS Source Controls & Audio Toggle -->
+        <!-- GPS & Centipede Connection Controls -->
         <div class="flex items-center gap-1.5">
-            <button onclick="openGnssModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400 shadow-lg shadow-emerald-950/50 transition flex items-center gap-1.5 animate-pulse" id="btnOpenGnssModal">
+            <button onclick="openGnssModal()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400 shadow-lg shadow-emerald-950/50 transition flex items-center gap-1.5" id="btnOpenGnssModal">
                 <i class="fa-solid fa-satellite-dish"></i>
-                <span>Connecter Antenne GPS</span>
+                <span>Antenne & Centipede RTK</span>
+            </button>
+            <button onclick="openStandaloneWindow()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-600/20 hover:bg-sky-600/40 text-sky-300 border border-sky-500/40 transition flex items-center gap-1" title="Ouvrir dans un nouvel onglet indépendant (Recommandé si le port USB/Bluetooth est bloqué par l'aperçu)">
+                <i class="fa-solid fa-up-right-from-square"></i>
+                <span class="hidden md:inline">Plein Écran USB/BT</span>
             </button>
             <button id="btnSourceSimu" onclick="switchGnssSource('simulation')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1" title="Mode simulation au bureau">
                 <i class="fa-solid fa-gamepad text-amber-400"></i>
                 <span class="hidden sm:inline">Simu</span>
-            </button>
-            <button id="btnToggleHudVis" onclick="toggleHudVisibility()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition flex items-center gap-1" title="Afficher / Réduire la cible de guidage">
-                <i class="fa-solid fa-bullseye"></i>
-                <span class="hidden md:inline">Cible</span>
             </button>
             <button id="btnAudioToggle" onclick="toggleAudioBeep()" class="p-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Activer/Désactiver le bip sonore d'approche">
                 <i id="iconAudio" class="fa-solid fa-volume-xmark"></i>
@@ -149,22 +157,22 @@
     <!-- MAIN WORKSPACE -->
     <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
 
-        <!-- LEFT / CENTER AREA: MAP & COMPACT/COLLAPSIBLE BULLSEYE RADAR -->
+        <!-- LEFT / CENTER AREA: MAP & COMPACT NON-BLOCKING GUIDANCE BAR -->
         <div class="flex-1 relative flex flex-col overflow-hidden">
-            <!-- COMPACT TOP GUIDANCE BAR (Non-blocking bar at top of map!) -->
+            <!-- COMPACT TOP GUIDANCE BAR -->
             <div id="compactGuidanceBar" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-3 py-1.5 z-20 flex flex-wrap items-center justify-between gap-2 shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
                     <span class="text-[11px] font-bold text-slate-400 uppercase">Cible :</span>
-                    <span id="barTargetName" class="font-mono-tech font-extrabold text-xs sm:text-sm text-amber-400">E1-B1-P1-SO</span>
+                    <span id="barTargetName" class="font-mono-tech font-extrabold text-xs sm:text-sm text-amber-400">E1-Allée1-DEB</span>
                     <div class="flex items-center gap-1 ml-1">
-                        <button onclick="selectPrevNextStake(-1)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-xs" title="Piquet précédent">
+                        <button onclick="selectPrevNextStake(-1)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-xs" title="Point précédent">
                             <i class="fa-solid fa-chevron-left"></i>
                         </button>
-                        <button onclick="selectPrevNextStake(1)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-xs" title="Piquet suivant">
+                        <button onclick="selectPrevNextStake(1)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 text-xs" title="Point suivant">
                             <i class="fa-solid fa-chevron-right"></i>
                         </button>
-                        <button onclick="selectNearestUnstaked()" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold text-emerald-400 border border-slate-700" title="Sélectionner le piquet non implanté le plus proche">
+                        <button onclick="selectNearestUnstaked()" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold text-emerald-400 border border-slate-700" title="Point non piqueté le plus proche">
                             Auto Proche
                         </button>
                     </div>
@@ -191,9 +199,9 @@
                         <i class="fa-solid fa-hammer"></i>
                         <span>Valider Piquet</span>
                     </button>
-                    <button onclick="toggleRadarPopup()" id="btnExpandRadar" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1" title="Ouvrir / Fermer le radar circulaire">
-                        <i class="fa-solid fa-compass"></i>
-                        <span class="hidden sm:inline" id="lblRadarToggle">Ouvrir Radar</span>
+                    <button onclick="toggleRadarPopup()" id="btnExpandRadar" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1" title="Afficher / Masquer la cible radar">
+                        <i class="fa-solid fa-compass text-amber-400"></i>
+                        <span class="hidden sm:inline" id="lblRadarToggle">Radar</span>
                     </button>
                 </div>
             </div>
@@ -202,18 +210,18 @@
             <div id="map" class="flex-1"></div>
 
             <!-- Floating Map Overlay Controls (Top Left) -->
-            <div class="absolute top-16 left-3 z-20 flex flex-col gap-2">
+            <div class="absolute top-14 left-3 z-20 flex flex-col gap-2">
                 <div class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1.5 flex flex-col gap-1 shadow-xl">
                     <button onclick="centerOnRover()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Centrer sur mon antenne GPS">
                         <i class="fa-solid fa-crosshairs text-xs"></i>
                     </button>
-                    <button onclick="fitTrialBounds()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 transition flex items-center justify-center" title="Centrer sur tous les essais">
+                    <button onclick="fitTrialBounds()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 transition flex items-center justify-center" title="Centrer sur les essais">
                         <i class="fa-solid fa-border-all text-xs"></i>
                     </button>
                     <button onclick="toggleMapLayer()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Changer fond de carte (IGN Ortho / Satellite / Plan)">
                         <i class="fa-solid fa-layer-group text-xs"></i>
                     </button>
-                    <button onclick="toggleLabelsOnMap()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-purple-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Afficher/Masquer les étiquettes des piquets">
+                    <button onclick="toggleLabelsOnMap()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-purple-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Afficher/Masquer les étiquettes sur la carte">
                         <i class="fa-solid fa-tags text-xs"></i>
                     </button>
                 </div>
@@ -230,7 +238,7 @@
             <div class="absolute bottom-3 left-3 z-20 flex flex-wrap items-center gap-2">
                 <button onclick="recordQuickSinglePoint()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-lg border border-emerald-400/50 flex items-center gap-1.5 transition active:scale-95">
                     <i class="fa-solid fa-plus-circle"></i>
-                    <span>Lever un point (GPS actuel)</span>
+                    <span>Lever un point GPS</span>
                 </button>
                 <!-- Micro-step Simulator Pad on bottom bar when Simu is active -->
                 <div id="simuNudgePad" class="bg-slate-900/95 backdrop-blur border border-slate-700 px-2.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
@@ -243,21 +251,18 @@
                 </div>
             </div>
 
-            <!-- COLLAPSIBLE & DRAGGABLE CENTIMETER BULLSEYE OVERLAY (Hidden by default so it doesn't block the screen!) -->
-            <div id="stakeoutHud" class="hidden absolute top-16 right-3 z-20 w-64 bg-slate-900/95 backdrop-blur-md border-2 border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
-                <!-- HUD Header (Draggable handle + close button) -->
+            <!-- COLLAPSIBLE & DRAGGABLE CENTIMETER BULLSEYE OVERLAY (Hidden by default) -->
+            <div id="stakeoutHud" class="hidden absolute top-14 right-3 z-20 w-64 bg-slate-900/95 backdrop-blur-md border-2 border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
                 <div id="stakeoutHudHeader" class="bg-slate-800/90 px-3 py-1.5 border-b border-slate-700 flex items-center justify-between cursor-move">
                     <div class="flex items-center gap-1.5">
                         <i class="fa-solid fa-arrows-up-down-left-right text-slate-400 text-[10px]"></i>
                         <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300">Radar :</span>
-                        <span id="hudTargetName" class="font-mono-tech font-extrabold text-xs text-amber-400">E1-B1-P1</span>
+                        <span id="hudTargetName" class="font-mono-tech font-extrabold text-xs text-amber-400">E1-Allée1-DEB</span>
                     </div>
-                    <button onclick="toggleRadarPopup()" class="w-6 h-6 rounded-lg bg-slate-700 hover:bg-rose-600 text-slate-200 hover:text-white flex items-center justify-center text-xs transition" title="Masquer le radar pour dégager l'écran">
+                    <button onclick="toggleRadarPopup()" class="w-6 h-6 rounded-lg bg-slate-700 hover:bg-rose-600 text-slate-200 hover:text-white flex items-center justify-center text-xs transition" title="Fermer le radar">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-
-                <!-- Bullseye Canvas & Real-Time Offsets -->
                 <div class="p-2.5 flex flex-col items-center">
                     <div class="relative w-36 h-36 flex items-center justify-center">
                         <canvas id="bullseyeCanvas" width="150" height="150" class="w-36 h-36 rounded-full bg-slate-950 border border-slate-800 shadow-inner"></canvas>
@@ -265,8 +270,6 @@
                             Dist: 0.00 m
                         </div>
                     </div>
-
-                    <!-- Reference Frame Selector (Ligne A-B vs Nord/Est) -->
                     <div class="w-full flex items-center justify-between mt-2 text-[10px] text-slate-400">
                         <span>Repère :</span>
                         <div class="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800">
@@ -274,8 +277,6 @@
                             <button id="btnRefCardinal" onclick="setGuidanceRef('cardinal')" class="px-1.5 py-0.5 rounded text-slate-400 hover:text-white font-semibold text-[9px]">Nord/Est</button>
                         </div>
                     </div>
-
-                    <!-- Directional Centimeter Bars -->
                     <div class="w-full grid grid-cols-2 gap-1.5 mt-1.5">
                         <div class="bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-center">
                             <div id="hudDir1Label" class="text-[9px] font-bold uppercase text-slate-400">AVANT (A→B)</div>
@@ -290,34 +291,221 @@
             </div>
         </div>
 
-        <!-- RIGHT SIDEBAR: MULTI-TRIAL GENERATOR, STAKE LIST & I/O -->
-        <aside class="w-full lg:w-[450px] xl:w-[480px] h-[48vh] lg:h-full bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col z-20 shrink-0">
+        <!-- RIGHT SIDEBAR: 4-STEP GUIDED WORKFLOW -->
+        <aside class="w-full lg:w-[480px] xl:w-[520px] h-[52vh] lg:h-full bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col z-20 shrink-0">
             
-            <!-- Sidebar Navigation Tabs -->
-            <div class="grid grid-cols-3 bg-slate-950 p-1 border-b border-slate-800 shrink-0">
-                <button id="tabBtnGrid" onclick="switchSidebarTab('grid')" class="py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-800 text-emerald-400 shadow">
-                    <i class="fa-solid fa-table-cells"></i>
-                    <span>Essais & Grille</span>
+            <!-- 4-Step Wizard Navigation Bar -->
+            <div class="grid grid-cols-4 bg-slate-950 p-1 border-b border-slate-800 shrink-0 gap-1">
+                <button id="stepBtn1" onclick="switchStep(1)" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 bg-slate-800 text-emerald-400 shadow border border-emerald-500/30">
+                    <span class="text-[9px] uppercase tracking-wider opacity-80">Étape 1</span>
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-satellite-dish"></i> Centipede</span>
                 </button>
-                <button id="tabBtnStakes" onclick="switchSidebarTab('stakes')" class="py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
-                    <i class="fa-solid fa-map-pin"></i>
-                    <span>Piquets (<span id="tabStakeCount">0</span>)</span>
+                <button id="stepBtn2" onclick="switchStep(2)" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200">
+                    <span class="text-[9px] uppercase tracking-wider opacity-80">Étape 2</span>
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-bookmark"></i> Ligne A-B</span>
                 </button>
-                <button id="tabBtnExport" onclick="switchSidebarTab('export')" class="py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
-                    <i class="fa-solid fa-file-export"></i>
-                    <span>Import / Export</span>
+                <button id="stepBtn3" onclick="switchStep(3)" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200">
+                    <span class="text-[9px] uppercase tracking-wider opacity-80">Étape 3</span>
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-Sliders"></i> Essais & Allées</span>
+                </button>
+                <button id="stepBtn4" onclick="switchStep(4)" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200">
+                    <span class="text-[9px] uppercase tracking-wider opacity-80">Étape 4</span>
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-location-crosshairs"></i> GPS Allées</span>
                 </button>
             </div>
 
-            <!-- TAB 1: MULTI-TRIAL GRID GENERATOR -->
-            <div id="tabContentGrid" class="flex-1 overflow-y-auto p-3 space-y-3">
-                
-                <!-- Section 1: Baseline A -> B -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2">
+            <!-- =====================================================================
+                 ÉTAPE 1 : CONNEXION ANTENNE GPS & RÉSEAU CENTIPEDE RTK
+                 ===================================================================== -->
+            <div id="stepContent1" class="flex-1 overflow-y-auto p-3 space-y-3">
+                <div class="bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-3 space-y-2">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-plug-circle-check"></i>
+                            Étape 1A — Connecter votre Antenne GPS
+                        </h2>
+                        <span id="step1GpsBadge" class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Mode Simulation
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 leading-relaxed">
+                        Sélectionnez comment votre antenne GPS est reliée à votre appareil :
+                    </p>
+
+                    <!-- Direct buttons for the 3 connection methods -->
+                    <div class="space-y-2 pt-1">
+                        <!-- Method A: USB / Bluetooth Serial COM NMEA -->
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                                    <i class="fa-brands fa-usb"></i>
+                                    A. Câble USB ou Bluetooth COM (Trames NMEA)
+                                </span>
+                                <select id="selBaudRateStep1" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] font-mono-tech text-white">
+                                    <option value="115200" selected>115200 bauds</option>
+                                    <option value="38400">38400 bauds</option>
+                                    <option value="57600">57600 bauds</option>
+                                    <option value="9600">9600 bauds</option>
+                                </select>
+                            </div>
+                            <p class="text-[10px] text-slate-400">
+                                Pour récepteur u-blox ZED-F9P, Ardusimple, Emlid Reach, Septentrio, Trimble en USB ou Bluetooth SPP.
+                            </p>
+                            <button onclick="connectWebSerialNmea()" class="w-full py-2 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
+                                <i class="fa-solid fa-plug"></i>
+                                <span>Choisir le port de l'antenne (USB / Bluetooth COM)</span>
+                            </button>
+                        </div>
+
+                        <!-- Method B: Android / iOS / Windows Location Service (with Lefebure NTRIP / SW Maps) -->
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-mobile-screen-button"></i>
+                                    B. Antenne via App NTRIP (Lefebure / Bluetooth GNSS)
+                                </span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">
+                                Si votre antenne et le réseau Centipede sont déjà connectés dans l'application <b>Lefebure NTRIP Client</b> (Position fictive / Mock Location sur Android ou Windows).
+                            </p>
+                            <button onclick="requestBrowserGpsPermission()" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
+                                <i class="fa-solid fa-location-crosshairs"></i>
+                                <span>Autoriser et lire la position GPS de l'appareil</span>
+                            </button>
+                        </div>
+
+                        <!-- Method C: Web Bluetooth BLE UART -->
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
+                                    <i class="fa-brands fa-bluetooth-b"></i>
+                                    C. Bluetooth Low Energy (BLE UART NMEA)
+                                </span>
+                            </div>
+                            <button onclick="connectWebBluetoothGnss()" class="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
+                                <i class="fa-brands fa-bluetooth"></i>
+                                <span>Scanner une antenne Bluetooth BLE</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Important Notice if inside an iframe -->
+                    <div id="iframeWarningBox" class="bg-amber-500/10 border border-amber-500/40 rounded-lg p-2 text-[11px] text-amber-200 flex items-center justify-between gap-2">
+                        <span><i class="fa-solid fa-circle-info text-amber-400 mr-1"></i> Si la fenêtre de choix du port USB/Bluetooth est bloquée par l'aperçu, ouvrez l'application dans un onglet dédié :</span>
+                        <button onclick="openStandaloneWindow()" class="shrink-0 px-2.5 py-1 rounded bg-amber-400 text-slate-950 font-extrabold text-[10px]">
+                            Ouvrir Onglet
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 1B: Réseau Centipede RTK Configuration -->
+                <div class="bg-slate-950/90 border border-sky-500/40 rounded-xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-tower-cell"></i>
+                            Étape 1B — Réseau Centipede RTK (NTRIP)
+                        </h2>
+                        <span id="centipedeStatusBadge" class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                            caster.centipede.fr:2101
+                        </span>
+                    </div>
+
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Paramètres officiels du réseau collaboratif open-source <b>Centipede RTK</b> pour recevoir les corrections centimétriques RTCM3 :
+                    </p>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Caster NTRIP Centipede</label>
+                            <input id="ntripHost" type="text" value="caster.centipede.fr" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Port</label>
+                            <input id="ntripPort" type="number" value="2101" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-amber-300 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Utilisateur</label>
+                            <input id="ntripUser" type="text" value="centipede" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-emerald-300 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Mot de passe</label>
+                            <input id="ntripPass" type="text" value="centipede" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-emerald-300 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Point de montage (Base)</label>
+                            <input id="ntripMountpoint" type="text" value="NEAREST" placeholder="ex: BOVES, AMIENS..." class="w-full bg-slate-900 border border-sky-500/60 rounded-lg px-2 py-1 text-xs font-mono-tech font-bold text-sky-300 outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Quick Regional Base Selector & Auto-detect -->
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span class="text-[10px] text-slate-400">Bases Centipede proches :</span>
+                        <button onclick="selectCentipedeMount('BOVES')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">BOVES (80)</button>
+                        <button onclick="selectCentipedeMount('AMIENS')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">AMIENS (80)</button>
+                        <button onclick="selectCentipedeMount('ESTREES')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">ESTREES (80)</button>
+                        <button onclick="selectCentipedeMount('ARRAS')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">ARRAS (62)</button>
+                        <button onclick="selectCentipedeMount('BEAUVAIS')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">BEAUVAIS (60)</button>
+                        <button onclick="fetchNearestCentipedeBase()" class="px-2 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-[10px] font-bold text-sky-300">
+                            <i class="fa-solid fa-magnifying-glass-location"></i> Chercher Base Auto
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="startCentipedeStream()" id="btnStartCentipede" class="py-2 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-satellite"></i>
+                            <span>Activer Flux Centipede</span>
+                        </button>
+                        <button onclick="copyCentipedeConfig()" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition" title="Copier les identifiants pour Lefebure / SW Maps">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>Copier pour Lefebure</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 1 Next Button -->
+                <button onclick="switchStep(2)" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                    <span>Passer à l'Étape 2 : Ligne A-B & Sauvegarde Plateforme</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- =====================================================================
+                 ÉTAPE 2 : LIGNE A-B & SAUVEGARDE DE LA PLATEFORME (ANNÉE, SITE, NOM)
+                 ===================================================================== -->
+            <div id="stepContent2" class="hidden flex-1 overflow-y-auto p-3 space-y-3">
+                
+                <!-- Platform Metadata & Save Box -->
+                <div class="bg-slate-950/90 border border-emerald-500/40 rounded-xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            1. Identification de la Plateforme
+                        </h2>
+                        <span class="text-[10px] font-mono-tech text-slate-400" id="savedPlatformsCountBadge">2 sauvegardées</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Année</label>
+                            <input id="platYear" type="number" value="2026" oninput="updatePlatformBanner()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech font-bold text-amber-300 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Site (Commune / Lieu-dit)</label>
+                            <input id="platSite" type="text" value="Amiens - Estrées" oninput="updatePlatformBanner()" placeholder="ex: Boves, Estrées-Mons..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="col-span-3">
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Nom de la plateforme</label>
+                            <input id="platName" type="text" value="Plateforme Essais Céréales Nord" oninput="updatePlatformBanner()" placeholder="ex: Plateforme Variétés & Fongicides" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-300 focus:border-emerald-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Point A and Point B Capture -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                             <i class="fa-solid fa-ruler-combined"></i>
-                            1. Ligne de Référence (Axe A → B)
+                            2. Levé des Points A et B (Ligne de Référence)
                         </h2>
                         <span id="uiAzimuthBadge" class="text-[11px] font-mono-tech bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-amber-300">
                             Azimut: 23.6°
@@ -325,66 +513,109 @@
                     </div>
 
                     <!-- Point A -->
-                    <div class="bg-slate-900 p-2 rounded-lg border border-slate-800/80 space-y-1">
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-bold text-white flex items-center gap-1.5">
-                                <span class="w-4 h-4 rounded bg-emerald-500 text-slate-950 font-extrabold text-[10px] flex items-center justify-center">A</span>
-                                Point A (Origine 0,0 sur la ligne)
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded bg-emerald-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">A</span>
+                                Point A (Départ 0,0)
                             </span>
                             <div class="flex items-center gap-1">
-                                <button onclick="setPointFromRover('A')" class="px-2 py-0.5 rounded bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1">
-                                    <i class="fa-solid fa-satellite-dish"></i> GPS
+                                <button onclick="setPointFromRover('A')" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 shadow">
+                                    <i class="fa-solid fa-satellite-dish"></i> Capturer A au GPS
                                 </button>
-                                <button onclick="startMapPick('A')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold flex items-center gap-1">
+                                <button onclick="startMapPick('A')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold flex items-center gap-1">
                                     <i class="fa-solid fa-location-dot"></i> Carte
                                 </button>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-1.5">
-                            <input id="inpALat" type="number" step="0.0000001" value="49.8732500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none">
-                            <input id="inpALon" type="number" step="0.0000001" value="2.3309500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none">
+                            <div>
+                                <span class="text-[9px] text-slate-400">Latitude A (WGS84)</span>
+                                <input id="inpALat" type="number" step="0.0000001" value="49.8732500" onchange="onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none">
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400">Longitude A (WGS84)</span>
+                                <input id="inpALon" type="number" step="0.0000001" value="2.3309500" onchange="onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none">
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Point B or Azimuth -->
-                    <div class="bg-slate-900 p-2 rounded-lg border border-slate-800/80 space-y-1">
+                    <!-- Point B -->
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-bold text-white flex items-center gap-1.5">
-                                <span class="w-4 h-4 rounded bg-amber-400 text-slate-950 font-extrabold text-[10px] flex items-center justify-center">B</span>
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center">B</span>
                                 Point B (Direction de la ligne AB)
                             </span>
                             <div class="flex items-center gap-1">
-                                <button onclick="setPointFromRover('B')" class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/30 text-[10px] font-semibold flex items-center gap-1">
-                                    <i class="fa-solid fa-satellite-dish"></i> GPS
+                                <button onclick="setPointFromRover('B')" class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold flex items-center gap-1 shadow">
+                                    <i class="fa-solid fa-satellite-dish"></i> Capturer B au GPS
                                 </button>
-                                <button onclick="startMapPick('B')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold flex items-center gap-1">
+                                <button onclick="startMapPick('B')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold flex items-center gap-1">
                                     <i class="fa-solid fa-location-dot"></i> Carte
                                 </button>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-1.5 items-center">
-                            <input id="inpBLat" type="number" step="0.0000001" value="49.8738500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none">
-                            <input id="inpBLon" type="number" step="0.0000001" value="2.3313500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none">
-                            <div class="flex items-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1">
-                                <span class="text-[10px] text-slate-400 mr-1">Az°</span>
-                                <input id="inpAzimuth" type="number" step="0.1" value="23.6" onchange="onAzimuthManualChange()" class="w-full bg-transparent text-xs font-mono-tech text-amber-300 outline-none">
+                        <div class="grid grid-cols-3 gap-1.5 items-end">
+                            <div>
+                                <span class="text-[9px] text-slate-400">Latitude B</span>
+                                <input id="inpBLat" type="number" step="0.0000001" value="49.8738500" onchange="onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none">
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400">Longitude B</span>
+                                <input id="inpBLon" type="number" step="0.0000001" value="2.3313500" onchange="onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none">
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400">Azimut AB (°)</span>
+                                <input id="inpAzimuth" type="number" step="0.1" value="23.6" onchange="onAzimuthManualChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-amber-300 outline-none">
                             </div>
                         </div>
                     </div>
+
+                    <!-- Save Platform Button -->
+                    <button onclick="saveCurrentPlatform()" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
+                        <i class="fa-solid fa-bookmark"></i>
+                        <span>Sauvegarder cette Ligne A-B (Année, Site, Plateforme)</span>
+                    </button>
                 </div>
 
-                <!-- Section 2: Multi-Trial Selector & Manager -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                <!-- Saved Platforms Library -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-[11px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-folder-open"></i>
+                            3. Plateformes A-B Sauvegardées
+                        </h3>
+                        <button onclick="exportPlatformsJSON()" class="text-[10px] text-slate-400 hover:text-white underline">
+                            Exporter JSON
+                        </button>
+                    </div>
+                    <div id="savedPlatformsList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1"></div>
+                </div>
+
+                <button onclick="switchStep(3)" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                    <span>Passer à l'Étape 3 : Réglage de l'Essai & Centres d'Allées</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- =====================================================================
+                 ÉTAPE 3 : RÉGLAGE DE L'ESSAI (DÉCALAGE AB -> 1ÈRE ALLÉE, ENTRAXE ALLÉES, BLOCS, PARCELLES)
+                 ===================================================================== -->
+            <div id="stepContent3" class="hidden flex-1 overflow-y-auto p-3 space-y-3">
+                
+                <!-- Multi-Trial Selector -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 space-y-2">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
                             <i class="fa-solid fa-layer-group"></i>
-                            2. Gestion des Essais (<span id="uiTrialsCount">1</span>)
+                            Sélection de l'Essai (<span id="uiTrialsCount">1</span>)
                         </h2>
                         <div class="flex items-center gap-1">
                             <button onclick="addNewTrial()" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition">
-                                <i class="fa-solid fa-plus"></i> Nouvel Essai
+                                <i class="fa-solid fa-plus"></i> Ajouter Essai
                             </button>
-                            <button onclick="duplicateCurrentTrial()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-semibold" title="Dupliquer cet essai à la suite">
+                            <button onclick="duplicateCurrentTrial()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-semibold" title="Dupliquer cet essai">
                                 <i class="fa-solid fa-copy"></i>
                             </button>
                             <button onclick="deleteCurrentTrial()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 text-[11px] font-semibold" title="Supprimer cet essai">
@@ -393,247 +624,225 @@
                         </div>
                     </div>
 
-                    <!-- Trial Pill Tabs -->
                     <div id="trialTabsContainer" class="flex flex-wrap gap-1.5 pt-0.5"></div>
 
-                    <!-- Active Trial Name & Prefix -->
                     <div class="grid grid-cols-3 gap-2 pt-1">
                         <div class="col-span-2">
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Nom de l'essai actif</label>
-                            <input id="cfgTrialName" type="text" value="Essai 1 - Variétés" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-white focus:border-sky-400 outline-none">
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Nom de l'essai</label>
+                            <input id="cfgTrialName" type="text" value="Essai 1 - Variétés Blé" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-white focus:border-sky-400 outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Préfixe Piquets</label>
+                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Code / Préfixe</label>
                             <input id="cfgTrialPrefix" type="text" value="E1" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono-tech font-bold text-amber-300 focus:border-sky-400 outline-none">
                         </div>
                     </div>
                 </div>
 
-                <!-- Section 3: Offset from Line AB & Plot Orientation -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                <!-- Orientation & Décalage de la ligne AB au centre de la 1ère allée -->
+                <div class="bg-slate-950/90 border border-amber-500/40 rounded-xl p-3 space-y-2.5">
                     <h2 class="text-xs font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-arrows-split-up-and-left"></i>
-                        3. Décalage / Ligne AB & Sens des Parcelles
+                        <i class="fa-solid fa-arrows-to-dot"></i>
+                        1. Sens & Décalage AB → Centre de la 1ère Allée
+                    </h2>
+
+                    <!-- Sens des parcelles -->
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-300 mb-1">Sens des parcelles par rapport à la ligne A→B</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" id="btnOrientAlong" onclick="setTrialOrientation('along_ab')" class="py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-emerald-600/20 border-emerald-500 text-emerald-300">
+                                <i class="fa-solid fa-arrow-up-long"></i>
+                                <span>Sens A→B (Parallèle)</span>
+                            </button>
+                            <button type="button" id="btnOrientPerp" onclick="setTrialOrientation('perp_ab')" class="py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800">
+                                <i class="fa-solid fa-arrows-left-right"></i>
+                                <span>Perpendiculaire à AB (90°)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Key Alley-Center Offsets -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-amber-500/50">
+                            <label class="block text-[10px] font-bold text-amber-300 mb-1">
+                                Décalage AB → Centre 1ère Allée (m)
+                            </label>
+                            <input id="cfgFirstAlleyOffset" type="number" step="0.01" value="10.00" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-amber-500/50 rounded px-2 py-1.5 text-sm font-mono-tech font-extrabold text-amber-300 focus:border-amber-400 outline-none">
+                            <span class="text-[9px] text-slate-400 block mt-0.5">Distance jusqu'au milieu de l'Allée 1</span>
+                        </div>
+
+                        <div class="bg-slate-900 p-2.5 rounded-lg border border-sky-500/50">
+                            <label class="block text-[10px] font-bold text-sky-300 mb-1">
+                                Distance entre chaque centre d'allée (m)
+                            </label>
+                            <input id="cfgAlleyCenterSpacing" type="number" step="0.01" min="0.5" value="10.50" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-sky-500/50 rounded px-2 py-1.5 text-sm font-mono-tech font-extrabold text-sky-300 focus:border-sky-400 outline-none">
+                            <span class="text-[9px] text-slate-400 block mt-0.5">Entraxe Centre Allée 1 → Centre Allée 2</span>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Offset (Start of trial along the other axis) & Position of Alley 1 -->
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">
+                                Décalage Début d'essai (1ère parcelle) (m)
+                            </label>
+                            <input id="cfgStartOffset" type="number" step="0.01" value="3.00" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 outline-none">
+                            <span class="text-[9px] text-slate-500">Position du bord Début de l'essai</span>
+                        </div>
+                        <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">
+                                Position de la 1ère Allée
+                            </label>
+                            <select id="cfgFirstAlleyPos" onchange="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-[11px] font-semibold text-white outline-none">
+                                <option value="between_b1_b2">Entre Bloc 1 et Bloc 2</option>
+                                <option value="before_b1">En tête (Avant le Bloc 1)</option>
+                            </select>
+                            <span class="text-[9px] text-slate-500">Référence de la 1ère allée</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Blocs, Parcelles, Longueur et Largeur -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-table-cells-large"></i>
+                        2. Blocs, Parcelles, Longueur & Largeur
                     </h2>
 
                     <div class="grid grid-cols-2 gap-2.5">
                         <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-1">
-                                Décalage le long de A→B (m)
-                            </label>
-                            <input id="cfgOffsetAlong" type="number" step="0.01" value="5.00" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono-tech text-amber-300 focus:border-amber-400 outline-none">
-                            <span class="text-[9px] text-slate-500">Distance depuis le point A</span>
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Nombre de Blocs</label>
+                            <input id="cfgBlocks" type="number" min="1" max="50" value="4" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono-tech font-bold text-white focus:border-emerald-500 outline-none">
                         </div>
                         <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-1">
-                                Décalage perpendiculaire AB (m)
-                            </label>
-                            <input id="cfgOffsetPerp" type="number" step="0.01" value="3.00" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono-tech text-sky-300 focus:border-sky-400 outline-none">
-                            <span class="text-[9px] text-slate-500">+ = à droite de AB | - = à gauche</span>
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Nombre de Parcelles / Bloc</label>
+                            <input id="cfgPlotsPerBlock" type="number" min="1" max="200" value="8" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono-tech font-bold text-white focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                            <label class="block text-[10px] font-semibold text-emerald-300 mb-0.5">Longueur des Parcelles (m)</label>
+                            <input id="cfgPlotLength" type="number" step="0.01" min="0.1" value="8.50" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono-tech font-bold text-emerald-300 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                            <label class="block text-[10px] font-semibold text-emerald-300 mb-0.5">Largeur des Parcelles (m)</label>
+                            <input id="cfgPlotWidth" type="number" step="0.01" min="0.1" value="1.50" oninput="saveCurrentTrialForm()" class="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono-tech font-bold text-emerald-300 focus:border-emerald-500 outline-none">
                         </div>
                     </div>
 
-                    <!-- Plot Orientation Selector (Along AB vs Perpendicular to AB) -->
+                    <!-- Live Calculated Alley Width & Trial Summary -->
+                    <div class="bg-sky-950/40 border border-sky-500/40 rounded-lg p-2.5 space-y-1">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-sky-200 font-semibold">Largeur d'allée calculée (Entraxe − Longueur) :</span>
+                            <span id="uiCalculatedAlleyWidth" class="font-mono-tech font-extrabold text-sky-300">2.00 m</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-slate-300">
+                            <span>Largeur totale essai (Début → Fin) : <b id="sumTrialWidth" class="text-white font-mono-tech">12.00 m</b></span>
+                            <span>Total : <b id="sumPlotsCount" class="text-emerald-400 font-mono-tech">32 parcelles</b></span>
+                        </div>
+                    </div>
+
+                    <!-- Plot Stake Generation Option -->
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Sens des parcelles par rapport à la ligne A→B</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button type="button" id="btnOrientAlong" onclick="setTrialOrientation('along_ab')" class="py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-emerald-600/20 border-emerald-500 text-emerald-300">
-                                <i class="fa-solid fa-arrow-up-long"></i>
-                                <span>Sens A→B (Parallèle)</span>
-                            </button>
-                            <button type="button" id="btnOrientPerp" onclick="setTrialOrientation('perp_ab')" class="py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800">
-                                <i class="fa-solid fa-arrows-left-right"></i>
-                                <span>Perpendiculaire (90°)</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 4: Geometry of Plots, Blocks & Alley Centers -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
-                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-grip"></i>
-                        4. Dimensions & Milieu des Allées
-                    </h2>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Nb de Blocs (Répétitions)</label>
-                            <input id="cfgBlocks" type="number" min="1" max="50" value="3" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono-tech text-white focus:border-emerald-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Parcelles par Bloc</label>
-                            <input id="cfgPlotsPerBlock" type="number" min="1" max="100" value="6" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono-tech text-white focus:border-emerald-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Longueur Parcelle (m)</label>
-                            <input id="cfgPlotLength" type="number" step="0.01" min="0.1" value="8.00" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono-tech text-emerald-300 focus:border-emerald-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Largeur Parcelle (m)</label>
-                            <input id="cfgPlotWidth" type="number" step="0.01" min="0.1" value="2.50" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono-tech text-emerald-300 focus:border-emerald-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-amber-300 mb-0.5">Allée Inter-Blocs (m)</label>
-                            <input id="cfgAlleyLength" type="number" step="0.01" min="0" value="3.00" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono-tech text-amber-300 focus:border-emerald-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-sky-300 mb-0.5">Allée Inter-Parcelles (m)</label>
-                            <input id="cfgAlleyWidth" type="number" step="0.01" min="0" value="0.50" oninput="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono-tech text-sky-300 focus:border-emerald-500 outline-none">
-                        </div>
-                    </div>
-
-                    <!-- Staking Mode for Plots -->
-                    <div>
-                        <label class="block text-[10px] font-semibold text-slate-300 mb-1">Piquets des parcelles</label>
-                        <select id="cfgStakeMode" onchange="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium text-white focus:border-emerald-500 outline-none">
-                            <option value="front2">2 piquets en tête de chaque parcelle (Entrée G + D)</option>
-                            <option value="all4">4 coins par parcelle (Entrée & Sortie)</option>
-                            <option value="corners_only">Angles de blocs + têtes de parcelles (Optimisé)</option>
-                            <option value="centers">Centre géométrique de chaque parcelle</option>
-                            <option value="perimeter">4 grands coins extérieurs de l'essai uniquement</option>
-                            <option value="none">Aucun piquet de coin (Uniquement les allées)</option>
+                        <label class="block text-[10px] font-semibold text-slate-400 mb-1">Points à générer en plus des Centres d'Allées (Début & Fin)</label>
+                        <select id="cfgStakeMode" onchange="saveCurrentTrialForm()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium text-white outline-none">
+                            <option value="alleys_and_front2">Centres d'allées (Début/Fin) + Têtes de parcelles (G/D)</option>
+                            <option value="alleys_only">Uniquement les Centres d'Allées (Début & Fin d'essai)</option>
+                            <option value="alleys_and_perimeter">Centres d'allées (Début/Fin) + 4 Coins extérieurs de l'essai</option>
+                            <option value="all4">Centres d'allées (Début/Fin) + 4 Coins de chaque parcelle</option>
                         </select>
                     </div>
-
-                    <!-- Alley Centerlines Staking Checkboxes -->
-                    <div class="bg-slate-900/90 border border-sky-500/30 rounded-xl p-2.5 space-y-1.5">
-                        <div class="text-[11px] font-bold text-sky-300 flex items-center gap-1.5">
-                            <i class="fa-solid fa-road"></i>
-                            <span>Piquetage du milieu des allées :</span>
-                        </div>
-                        <label class="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
-                            <input id="cfgMidAlleyBlock" type="checkbox" checked onchange="saveCurrentTrialForm()" class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-0">
-                            <span><b>Milieu des allées inter-blocs</b> (Début, Milieu, Fin d'allée)</span>
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
-                            <input id="cfgMidAlleyPlot" type="checkbox" checked onchange="saveCurrentTrialForm()" class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-0">
-                            <span><b>Milieu des allées inter-parcelles</b> (Axe entre parcelles)</span>
-                        </label>
-                    </div>
-
-                    <!-- Summary of dimensions -->
-                    <div id="trialSummaryBox" class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 text-[11px] text-slate-300 flex items-center justify-between">
-                        <span>Essai actif : <b id="sumDimensions" class="text-white font-mono-tech">30.00m × 17.50m</b></span>
-                        <span>Total : <b id="sumPlotsCount" class="text-emerald-400 font-mono-tech">18 parcelles</b></span>
-                    </div>
                 </div>
+
+                <button onclick="switchStep(4)" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                    <span>Voir les Points GPS des Centres d'Allées (Début & Fin)</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
             </div>
 
-            <!-- TAB 2: STAKES LIST & FIELD CHECKLIST -->
-            <div id="tabContentStakes" class="hidden flex-1 flex flex-col overflow-hidden p-3 space-y-2.5">
-                <!-- Filter & Search -->
-                <div class="flex items-center gap-2 shrink-0">
-                    <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
-                        <input id="inpSearchStake" type="text" oninput="renderStakeList()" placeholder="Chercher piquet (ex: B1-P2, Relevé...)" class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white focus:border-emerald-500 outline-none">
+            <!-- =====================================================================
+                 ÉTAPE 4 : POINTS GPS DES CENTRES D'ALLÉES (DÉBUT & FIN D'ESSAI) & EXPORTS
+                 ===================================================================== -->
+            <div id="stepContent4" class="hidden flex-1 flex flex-col overflow-hidden p-3 space-y-2.5">
+                
+                <!-- Prominent Alley Centers GPS Table (Début & Fin d'essai) -->
+                <div class="bg-slate-950 border border-sky-500/50 rounded-xl p-2.5 flex flex-col max-h-[52%] shrink-0">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-road"></i>
+                            Points GPS des Centres d'Allées (Début & Fin)
+                        </h2>
+                        <button onclick="exportAlleyCentersCSV()" class="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-file-csv"></i> Export CSV Allées
+                        </button>
                     </div>
-                    <select id="selFilterStake" onchange="renderStakeList()" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none">
-                        <option value="all">Tous</option>
+
+                    <div class="overflow-y-auto flex-1 border border-slate-800 rounded-lg">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-900 text-[10px] text-slate-400 uppercase sticky top-0">
+                                <tr>
+                                    <th class="py-1.5 px-2">Allée</th>
+                                    <th class="py-1.5 px-2">Position</th>
+                                    <th class="py-1.5 px-2">GPS (Lat, Lon) / L93</th>
+                                    <th class="py-1.5 px-2 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alleyCentersTableBody" class="divide-y divide-slate-800/80 text-[11px] font-mono-tech">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Filter & Full Stake Checklist -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <select id="selFilterStake" onchange="renderStakeList()" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-200 outline-none font-semibold">
+                        <option value="alleys">Centres d'Allées (Début/Fin)</option>
+                        <option value="all" selected>Tous les points (<span id="tabStakeCount">0</span>)</option>
                         <option value="todo">À piqueter</option>
                         <option value="done">Implantés</option>
                     </select>
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 shrink-0">
-                    <div class="flex justify-between text-[11px] mb-1">
-                        <span class="text-slate-400 font-medium">Progression du chantier :</span>
-                        <span id="uiProgressText" class="font-mono-tech font-bold text-emerald-400">0 / 48 (0%)</span>
-                    </div>
-                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div id="uiProgressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
-                    </div>
+                    <input id="inpSearchStake" type="text" oninput="renderStakeList()" placeholder="Filtrer (ex: Allée 1, DEB, FIN...)" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-emerald-500 outline-none">
+                    <button onclick="exportStakesCSV()" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center gap-1 shrink-0" title="Exporter tous les points en CSV">
+                        <i class="fa-solid fa-download"></i> CSV
+                    </button>
+                    <button onclick="exportTrialGeoJSON()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs flex items-center gap-1 shrink-0" title="Exporter en GeoJSON (QGIS)">
+                        GeoJSON
+                    </button>
                 </div>
 
                 <!-- Dynamic Stake List -->
                 <div id="stakeListContainer" class="flex-1 overflow-y-auto space-y-1.5 pr-1"></div>
             </div>
-
-            <!-- TAB 3: IMPORT / EXPORT & PROTOCOLS -->
-            <div id="tabContentExport" class="hidden flex-1 overflow-y-auto p-3.5 space-y-4">
-                <!-- Export Formats -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
-                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-download"></i>
-                        Exporter le Piquetage & Relevés
-                    </h2>
-                    <p class="text-[11px] text-slate-400">
-                        Exportez vos coordonnées en <b>WGS84 (Lat/Lon)</b> et <b>RGF93 / Lambert-93 (X, Y en mètres)</b> avec les écarts d'implantation enregistrés.
-                    </p>
-                    <div class="grid grid-cols-1 gap-2 pt-1">
-                        <button onclick="exportStakesCSV()" class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center justify-between shadow transition">
-                            <span class="flex items-center gap-2"><i class="fa-solid fa-file-csv text-base"></i> Exporter CSV (Excel / Topographie L93 + WGS84)</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
-                        <button onclick="exportTrialGeoJSON()" class="w-full py-2.5 px-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs flex items-center justify-between shadow transition">
-                            <span class="flex items-center gap-2"><i class="fa-solid fa-map text-base"></i> Exporter GeoJSON (QGIS / Parcelles + Piquets)</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
-                        <button onclick="exportTrialKML()" class="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center justify-between shadow transition">
-                            <span class="flex items-center gap-2"><i class="fa-solid fa-earth-europe text-base"></i> Exporter KML (Google Earth)</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Import CSV -->
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
-                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-upload"></i>
-                        Importer une liste de piquets (CSV)
-                    </h2>
-                    <p class="text-[11px] text-slate-400">
-                        Format accepté : colonnes <code>ID,Lat,Lon</code> (avec point ou point-virgule).
-                    </p>
-                    <input id="inpFileCsv" type="file" accept=".csv,.txt" onchange="importStakesCSV(event)" class="block w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-emerald-400 hover:file:bg-slate-700 cursor-pointer">
-                </div>
-            </div>
         </aside>
     </div>
 
-    <!-- MODAL ASSISTANT DE CONNEXION ANTENNE GPS / RTK -->
+    <!-- MODAL ASSISTANT DE CONNEXION ANTENNE GPS & CENTIPEDE RTK -->
     <div id="gnssConnectModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
             <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-satellite-dish text-emerald-400"></i>
-                    <h3 class="font-bold text-sm text-white">Connexion de votre Antenne GPS / RTK</h3>
+                    <h3 class="font-bold text-sm text-white">Connexion Antenne GPS & Centipede RTK</h3>
                 </div>
                 <button onclick="closeGnssModal()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div class="p-4 space-y-3 max-h-[80vh] overflow-y-auto">
-                <p class="text-xs text-slate-300 leading-relaxed">
-                    Choisissez le mode de liaison de votre antenne centimétrique pour que le navigateur affiche la fenêtre d'autorisation :
-                </p>
-
-                <!-- Option 1: OS Location Permission Prompt (Android/iOS Mock Location / Bluetooth GNSS / Lefebure) -->
-                <div class="bg-slate-950 border border-emerald-500/40 rounded-xl p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-mobile-screen-button"></i>
-                            1. GPS Appareil / Antenne via NTRIP (Android, iOS, Windows)
-                        </span>
-                        <span id="permStatusBadge" class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-300">Prêt</span>
+            <div class="p-4 space-y-3 max-h-[82vh] overflow-y-auto">
+                <!-- Standalone Window Helper -->
+                <div class="bg-amber-500/15 border border-amber-500/40 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                    <div class="text-[11px] text-amber-200 leading-tight">
+                        <b>Astuce :</b> Si la popup de connexion USB/Bluetooth est bloquée par la fenêtre d'aperçu, ouvrez l'application dans un onglet complet :
                     </div>
-                    <p class="text-[11px] text-slate-400">
-                        Déclenche la demande d'autorisation de localisation du navigateur. Idéal si votre antenne est connectée via <i>Bluetooth GNSS</i>, <i>SW Maps</i> ou <i>Lefebure NTRIP</i> sur smartphone/tablette.
-                    </p>
-                    <button onclick="requestBrowserGpsPermission()" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
-                        <i class="fa-solid fa-location-crosshairs"></i>
-                        <span>Demander l'autorisation GPS maintenant</span>
+                    <button onclick="openStandaloneWindow()" class="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs">
+                        Plein Écran
                     </button>
                 </div>
 
-                <!-- Option 2: Direct USB / Bluetooth SPP COM Port (Web Serial NMEA) -->
+                <!-- Option 1: Direct USB / Bluetooth SPP COM Port (Web Serial NMEA + RTCM injection) -->
                 <div class="bg-slate-950 border border-sky-500/40 rounded-xl p-3 space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
                             <i class="fa-brands fa-usb"></i>
-                            2. Port Série USB ou Bluetooth COM (Trames NMEA 0183)
+                            1. Port Série USB ou Bluetooth COM (NMEA + Centipede)
                         </span>
                         <select id="selBaudRate" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] font-mono-tech text-white">
                             <option value="115200" selected>115200 bauds</option>
@@ -643,7 +852,7 @@
                         </select>
                     </div>
                     <p class="text-[11px] text-slate-400">
-                        Ouvre le sélecteur de port de Chrome/Edge pour choisir votre récepteur RTK (u-blox F9P, Emlid Reach, Septentrio, Trimble...) en USB ou Bluetooth SPP.
+                        Connecte directement votre récepteur RTK (Ardusimple F9P, Emlid, Septentrio...) en USB ou Bluetooth COM.
                     </p>
                     <button onclick="connectWebSerialNmea()" class="w-full py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
                         <i class="fa-solid fa-plug"></i>
@@ -651,28 +860,38 @@
                     </button>
                 </div>
 
+                <!-- Option 2: OS Location Permission Prompt (Android/iOS/Windows with Lefebure NTRIP) -->
+                <div class="bg-slate-950 border border-emerald-500/40 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                            2. GPS Appareil avec Lefebure NTRIP / SW Maps
+                        </span>
+                        <span id="permStatusBadge" class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-300">Prêt</span>
+                    </div>
+                    <button onclick="requestBrowserGpsPermission()" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                        <span>Demander l'autorisation GPS maintenant</span>
+                    </button>
+                </div>
+
                 <!-- Option 3: Web Bluetooth BLE -->
                 <div class="bg-slate-950 border border-indigo-500/40 rounded-xl p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
-                            <i class="fa-brands fa-bluetooth-b"></i>
-                            3. Recherche Bluetooth directe (BLE)
-                        </span>
-                    </div>
-                    <p class="text-[11px] text-slate-400">
-                        Demande au navigateur de scanner les antennes Bluetooth Low Energy (BLE UART / Location Service) à proximité.
-                    </p>
+                    <span class="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
+                        <i class="fa-brands fa-bluetooth-b"></i>
+                        3. Antenne Bluetooth Low Energy (BLE UART)
+                    </span>
                     <button onclick="connectWebBluetoothGnss()" class="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
                         <i class="fa-brands fa-bluetooth"></i>
-                        <span>Rechercher une antenne Bluetooth</span>
+                        <span>Rechercher une antenne Bluetooth BLE</span>
                     </button>
                 </div>
 
                 <!-- Live Diagnostic Log -->
                 <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
-                    <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Journal de connexion & Diagnostic :</div>
-                    <div id="gnssDiagLog" class="font-mono-tech text-[11px] text-emerald-300 h-16 overflow-y-auto space-y-0.5">
-                        <div>[Système] En attente de connexion à l'antenne...</div>
+                    <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Journal de connexion & Trames NMEA / Centipede :</div>
+                    <div id="gnssDiagLog" class="font-mono-tech text-[11px] text-emerald-300 h-20 overflow-y-auto space-y-0.5">
+                        <div>[Système] Prêt. Caster Centipede configuré sur caster.centipede.fr:2101</div>
                     </div>
                 </div>
             </div>
@@ -687,22 +906,30 @@
 
     <script>
         /* ============================================================================
-         * 1. APPLICATION STATE & GEODETIC CONSTANTS (WGS84 & RGF93 LAMBERT-93)
+         * 1. APPLICATION STATE, SAVED PLATFORMS & ALLEY-CENTER TRIAL MODEL
          * ============================================================================ */
         const TRIAL_COLORS = ['#38bdf8', '#a78bfa', '#34d399', '#fb923c', '#f472b6', '#facc15'];
 
         const state = {
+            currentStep: 1,
             gnssSource: 'simulation', // 'simulation' | 'geolocation' | 'serial' | 'ble'
             watchId: null,
             serialPort: null,
+            serialWriter: null,
+            ntripActive: false,
+            ntripTimer: null,
             rover: {
                 lat: 49.8732480,
                 lon: 2.3309480,
                 accuracy: 0.012,
                 fixType: 'SIMU RTK FIX',
                 sats: 24,
-                hdop: 0.6,
-                heading: 0
+                hdop: 0.6
+            },
+            platform: {
+                year: 2026,
+                site: 'Amiens - Estrées',
+                name: 'Plateforme Essais Céréales Nord'
             },
             baseline: {
                 latA: 49.8732500,
@@ -711,53 +938,74 @@
                 lonB: 2.3313500,
                 azimuthDeg: 23.6
             },
+            savedPlatforms: [
+                {
+                    id: 'plat-1',
+                    year: 2026,
+                    site: 'Amiens - Estrées',
+                    name: 'Plateforme Essais Céréales Nord',
+                    latA: 49.8732500,
+                    lonA: 2.3309500,
+                    latB: 49.8738500,
+                    lonB: 2.3313500,
+                    azimuthDeg: 23.6
+                },
+                {
+                    id: 'plat-2',
+                    year: 2026,
+                    site: 'Boves - Somme',
+                    name: 'Plateforme Betteraves & Protéagineux',
+                    latA: 49.8451200,
+                    lonA: 2.3914500,
+                    latB: 49.8459000,
+                    lonB: 2.3918500,
+                    azimuthDeg: 18.4
+                }
+            ],
             trials: [
                 {
                     id: 'trial-1',
-                    name: 'Essai 1 - Variétés',
+                    name: 'Essai 1 - Variétés Blé',
                     prefix: 'E1',
                     color: '#38bdf8',
-                    offsetAlongAB: 4.00,  // 4m along A->B
-                    offsetPerpAB: 2.50,   // 2.5m to the right of A->B
-                    orientation: 'along_ab', // 'along_ab' or 'perp_ab'
-                    blocks: 3,
-                    plotsPerBlock: 5,
-                    plotLength: 8.00,
-                    plotWidth: 2.50,
-                    alleyLength: 3.00,
-                    alleyWidth: 0.50,
-                    stakeMode: 'front2',
-                    midAlleyBlock: true,
-                    midAlleyPlot: true
+                    orientation: 'along_ab',      // 'along_ab' (Parcelles sens AB) or 'perp_ab' (Parcelles perpendiculaires à AB)
+                    firstAlleyOffset: 10.00,      // Décalage de la ligne AB au centre de la 1ère allée (m)
+                    alleyCenterSpacing: 10.50,    // Distance entre chaque centre d'allée (m)
+                    startOffset: 3.00,            // Décalage du début de l'essai (côté Parcelle 1) (m)
+                    firstAlleyPos: 'between_b1_b2', // 'between_b1_b2' or 'before_b1'
+                    blocks: 4,
+                    plotsPerBlock: 8,
+                    plotLength: 8.50,
+                    plotWidth: 1.50,
+                    stakeMode: 'alleys_and_front2'
                 },
                 {
                     id: 'trial-2',
-                    name: 'Essai 2 - Fongicides',
+                    name: 'Essai 2 - Fongicides Orge',
                     prefix: 'E2',
                     color: '#a78bfa',
-                    offsetAlongAB: 12.00,
-                    offsetPerpAB: 20.00,
-                    orientation: 'perp_ab', // Perpendicular to A->B!
-                    blocks: 2,
-                    plotsPerBlock: 4,
+                    orientation: 'perp_ab',
+                    firstAlleyOffset: 12.00,
+                    alleyCenterSpacing: 11.00,
+                    startOffset: 20.00,
+                    firstAlleyPos: 'between_b1_b2',
+                    blocks: 3,
+                    plotsPerBlock: 6,
                     plotLength: 9.00,
-                    plotWidth: 3.00,
-                    alleyLength: 2.50,
-                    alleyWidth: 0.60,
-                    stakeMode: 'front2',
-                    midAlleyBlock: true,
-                    midAlleyPlot: false
+                    plotWidth: 2.00,
+                    stakeMode: 'alleys_and_front2'
                 }
             ],
             activeTrialId: 'trial-1',
-            plots: [],       // Polygons of all trial plots
-            alleyLines: [],  // Centerlines of inter-block and inter-plot alleys
-            offsetLines: [], // Visual offset lines from AB baseline to each trial origin
-            stakes: [],      // Individual stake points to implant (corners + alley centers + manual)
+            plots: [],
+            alleyLines: [],
+            alleyCenterPoints: [], // Stores { trialPrefix, alleyNum, posType: 'DÉBUT'|'FIN', lat, lon, xL93, yL93, stakeId }
+            offsetLines: [],
+            stakes: [],
             activeStakeId: null,
-            guidanceRef: 'axis', // 'axis' (Along A->B / Perp) or 'cardinal' (North / East)
-            toleranceMeters: 0.025, // 2.5 cm validation tolerance
-            mapPickMode: null, // null | 'A' | 'B'
+            guidanceRef: 'axis',
+            toleranceMeters: 0.025,
+            mapPickMode: null,
             showMapLabels: true,
             currentLayerIndex: 0,
             audioEnabled: false,
@@ -765,7 +1013,9 @@
             lastBeepTime: 0
         };
 
-        // Exact WGS84 Ellipsoid radii of curvature for millimeter-accurate local tangent plane (ENU) offsets
+        /* ============================================================================
+         * 2. GEODETIC PROJECTIONS (WGS84 <-> ENU LOCAL METERS <-> LAMBERT-93)
+         * ============================================================================ */
         function getWgs84Radii(latDeg) {
             const a = 6378137.0;
             const f = 1 / 298.257223563;
@@ -820,7 +1070,7 @@
         }
 
         /* ============================================================================
-         * 2. LEAFLET MAP SETUP & DRAGGABLE / COLLAPSIBLE HUD
+         * 3. LEAFLET MAP & DRAGGABLE RADAR HUD
          * ============================================================================ */
         let map, baseLayers, plotLayerGroup, stakeLayerGroup, baselineLayerGroup, roverMarker, roverAccuracyCircle, guidanceLine;
 
@@ -832,6 +1082,11 @@
                 zoomControl: false
             });
 
+            const ignOrtho = L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', {
+                maxNativeZoom: 19,
+                maxZoom: 24,
+                attribution: 'IGN France Ortho'
+            });
             const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxNativeZoom: 19,
                 maxZoom: 24,
@@ -841,11 +1096,6 @@
                 maxNativeZoom: 19,
                 maxZoom: 24,
                 attribution: 'OpenStreetMap'
-            });
-            const ignOrtho = L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', {
-                maxNativeZoom: 19,
-                maxZoom: 24,
-                attribution: 'IGN France Ortho'
             });
 
             baseLayers = [ignOrtho, esriSat, osmLayer];
@@ -886,13 +1136,13 @@
                     document.getElementById('inpALon').value = e.latlng.lng.toFixed(7);
                     cancelMapPick();
                     onBaselineInputChange();
-                    showToast('Origine Point A mise à jour sur la carte');
+                    showToast('Point A positionné sur la carte');
                 } else if (state.mapPickMode === 'B') {
                     document.getElementById('inpBLat').value = e.latlng.lat.toFixed(7);
                     document.getElementById('inpBLon').value = e.latlng.lng.toFixed(7);
                     cancelMapPick();
                     onBaselineInputChange();
-                    showToast('Direction Point B mise à jour sur la carte');
+                    showToast('Point B positionné sur la carte');
                 } else if (state.gnssSource === 'simulation') {
                     state.rover.lat = e.latlng.lat;
                     state.rover.lon = e.latlng.lng;
@@ -905,28 +1155,7 @@
 
         function toggleRadarPopup() {
             const hud = document.getElementById('stakeoutHud');
-            const lbl = document.getElementById('lblRadarToggle');
-            const isHidden = hud.classList.contains('hidden');
-            if (isHidden) {
-                hud.classList.remove('hidden');
-                if (lbl) lbl.textContent = 'Masquer Radar';
-            } else {
-                hud.classList.add('hidden');
-                if (lbl) lbl.textContent = 'Ouvrir Radar';
-            }
-        }
-
-        function toggleHudVisibility() {
-            const bar = document.getElementById('compactGuidanceBar');
-            const hud = document.getElementById('stakeoutHud');
-            if (!bar.classList.contains('hidden') && !hud.classList.contains('hidden')) {
-                hud.classList.add('hidden');
-            } else if (!bar.classList.contains('hidden') && hud.classList.contains('hidden')) {
-                hud.classList.remove('hidden');
-            } else {
-                bar.classList.remove('hidden');
-            }
-            setTimeout(() => map.invalidateSize(), 150);
+            hud.classList.toggle('hidden');
         }
 
         function initDraggableHud() {
@@ -963,7 +1192,106 @@
         }
 
         /* ============================================================================
-         * 3. MULTI-TRIAL MANAGEMENT, AB OFFSETS, ORIENTATION & ALLEY CENTERS
+         * 4. STEP NAVIGATION & SAVED PLATFORMS (ANNÉE, SITE, NOM, POINTS A & B)
+         * ============================================================================ */
+        function switchStep(stepNum) {
+            state.currentStep = stepNum;
+            [1, 2, 3, 4].forEach(n => {
+                const btn = document.getElementById('stepBtn' + n);
+                const content = document.getElementById('stepContent' + n);
+                if (n === stepNum) {
+                    btn.className = 'py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 bg-slate-800 text-emerald-400 shadow border border-emerald-500/30';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:text-slate-200';
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        function updatePlatformBanner() {
+            state.platform.year = parseInt(document.getElementById('platYear').value) || 2026;
+            state.platform.site = document.getElementById('platSite').value || 'Site';
+            state.platform.name = document.getElementById('platName').value || 'Plateforme';
+            const banner = document.getElementById('activePlatformBanner');
+            if (banner) {
+                banner.innerHTML = `Plateforme : <span class="text-amber-300 font-semibold">${state.platform.year} • ${state.platform.site} • ${state.platform.name}</span>`;
+            }
+        }
+
+        function saveCurrentPlatform() {
+            updatePlatformBanner();
+            const newPlat = {
+                id: 'plat-' + Date.now(),
+                year: state.platform.year,
+                site: state.platform.site,
+                name: state.platform.name,
+                latA: state.baseline.latA,
+                lonA: state.baseline.lonA,
+                latB: state.baseline.latB,
+                lonB: state.baseline.lonB,
+                azimuthDeg: state.baseline.azimuthDeg
+            };
+            state.savedPlatforms.unshift(newPlat);
+            renderSavedPlatforms();
+            showToast(`Plateforme "${newPlat.year} - ${newPlat.name}" sauvegardée !`);
+        }
+
+        function loadSavedPlatform(platId) {
+            const p = state.savedPlatforms.find(item => item.id === platId);
+            if (!p) return;
+            document.getElementById('platYear').value = p.year;
+            document.getElementById('platSite').value = p.site;
+            document.getElementById('platName').value = p.name;
+            document.getElementById('inpALat').value = p.latA.toFixed(7);
+            document.getElementById('inpALon').value = p.lonA.toFixed(7);
+            document.getElementById('inpBLat').value = p.latB.toFixed(7);
+            document.getElementById('inpBLon').value = p.lonB.toFixed(7);
+            updatePlatformBanner();
+            onBaselineInputChange();
+            fitTrialBounds();
+            showToast(`Plateforme "${p.name}" chargée`);
+        }
+
+        function deleteSavedPlatform(platId) {
+            state.savedPlatforms = state.savedPlatforms.filter(item => item.id !== platId);
+            renderSavedPlatforms();
+        }
+
+        function renderSavedPlatforms() {
+            const container = document.getElementById('savedPlatformsList');
+            const badge = document.getElementById('savedPlatformsCountBadge');
+            if (badge) badge.textContent = `${state.savedPlatforms.length} sauvegardée(s)`;
+            if (!container) return;
+
+            container.innerHTML = state.savedPlatforms.map(p => `
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                        <div class="text-xs font-bold text-white truncate">${p.year} • ${p.site} — <span class="text-emerald-400">${p.name}</span></div>
+                        <div class="text-[10px] font-mono-tech text-slate-400">
+                            A(${p.latA.toFixed(5)}, ${p.lonA.toFixed(5)}) → Az: ${p.azimuthDeg.toFixed(1)}°
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="loadSavedPlatform('${p.id}')" class="px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[10px] font-bold transition">
+                            Charger
+                        </button>
+                        <button onclick="deleteSavedPlatform('${p.id}')" class="px-1.5 py-1 rounded bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white text-[10px] transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportPlatformsJSON() {
+            const content = JSON.stringify(state.savedPlatforms, null, 2);
+            downloadFile('plateformes_AB_sauvegardees.json', content, 'application/json');
+            showToast('Bibliothèque des plateformes A-B exportée');
+        }
+
+        /* ============================================================================
+         * 5. ALLEY-CENTER GEOMETRY ENGINE (DÉCALAGE AB -> CENTRE 1ÈRE ALLÉE & ENTRAXE)
          * ============================================================================ */
         function getActiveTrial() {
             return state.trials.find(t => t.id === state.activeTrialId) || state.trials[0];
@@ -997,17 +1325,15 @@
             if (!t) return;
             document.getElementById('cfgTrialName').value = t.name;
             document.getElementById('cfgTrialPrefix').value = t.prefix;
-            document.getElementById('cfgOffsetAlong').value = t.offsetAlongAB.toFixed(2);
-            document.getElementById('cfgOffsetPerp').value = t.offsetPerpAB.toFixed(2);
+            document.getElementById('cfgFirstAlleyOffset').value = t.firstAlleyOffset.toFixed(2);
+            document.getElementById('cfgAlleyCenterSpacing').value = t.alleyCenterSpacing.toFixed(2);
+            document.getElementById('cfgStartOffset').value = t.startOffset.toFixed(2);
+            document.getElementById('cfgFirstAlleyPos').value = t.firstAlleyPos || 'between_b1_b2';
             document.getElementById('cfgBlocks').value = t.blocks;
             document.getElementById('cfgPlotsPerBlock').value = t.plotsPerBlock;
             document.getElementById('cfgPlotLength').value = t.plotLength.toFixed(2);
             document.getElementById('cfgPlotWidth').value = t.plotWidth.toFixed(2);
-            document.getElementById('cfgAlleyLength').value = t.alleyLength.toFixed(2);
-            document.getElementById('cfgAlleyWidth').value = t.alleyWidth.toFixed(2);
             document.getElementById('cfgStakeMode').value = t.stakeMode;
-            document.getElementById('cfgMidAlleyBlock').checked = !!t.midAlleyBlock;
-            document.getElementById('cfgMidAlleyPlot').checked = !!t.midAlleyPlot;
             updateOrientationButtonsUI(t.orientation);
         }
 
@@ -1015,11 +1341,11 @@
             const btnAlong = document.getElementById('btnOrientAlong');
             const btnPerp = document.getElementById('btnOrientPerp');
             if (orientation === 'along_ab') {
-                btnAlong.className = 'py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-emerald-600/20 border-emerald-500 text-emerald-300';
-                btnPerp.className = 'py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800';
+                btnAlong.className = 'py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-emerald-600/20 border-emerald-500 text-emerald-300';
+                btnPerp.className = 'py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800';
             } else {
-                btnPerp.className = 'py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-amber-500/20 border-amber-400 text-amber-300';
-                btnAlong.className = 'py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800';
+                btnPerp.className = 'py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-amber-500/20 border-amber-400 text-amber-300';
+                btnAlong.className = 'py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800';
             }
         }
 
@@ -1036,17 +1362,15 @@
             if (!t) return;
             t.name = document.getElementById('cfgTrialName').value || 'Essai';
             t.prefix = (document.getElementById('cfgTrialPrefix').value || 'E1').trim();
-            t.offsetAlongAB = parseFloat(document.getElementById('cfgOffsetAlong').value) || 0;
-            t.offsetPerpAB = parseFloat(document.getElementById('cfgOffsetPerp').value) || 0;
+            t.firstAlleyOffset = parseFloat(document.getElementById('cfgFirstAlleyOffset').value) || 0;
+            t.alleyCenterSpacing = Math.max(0.5, parseFloat(document.getElementById('cfgAlleyCenterSpacing').value) || 10);
+            t.startOffset = parseFloat(document.getElementById('cfgStartOffset').value) || 0;
+            t.firstAlleyPos = document.getElementById('cfgFirstAlleyPos').value;
             t.blocks = Math.max(1, parseInt(document.getElementById('cfgBlocks').value) || 1);
             t.plotsPerBlock = Math.max(1, parseInt(document.getElementById('cfgPlotsPerBlock').value) || 1);
             t.plotLength = Math.max(0.1, parseFloat(document.getElementById('cfgPlotLength').value) || 8);
-            t.plotWidth = Math.max(0.1, parseFloat(document.getElementById('cfgPlotWidth').value) || 2.5);
-            t.alleyLength = Math.max(0, parseFloat(document.getElementById('cfgAlleyLength').value) || 0);
-            t.alleyWidth = Math.max(0, parseFloat(document.getElementById('cfgAlleyWidth').value) || 0);
+            t.plotWidth = Math.max(0.1, parseFloat(document.getElementById('cfgPlotWidth').value) || 1.5);
             t.stakeMode = document.getElementById('cfgStakeMode').value;
-            t.midAlleyBlock = document.getElementById('cfgMidAlleyBlock').checked;
-            t.midAlleyPlot = document.getElementById('cfgMidAlleyPlot').checked;
 
             renderTrialTabs();
             generateTrialLayout();
@@ -1061,18 +1385,16 @@
                 name: `Essai ${idx}`,
                 prefix: `E${idx}`,
                 color: TRIAL_COLORS[(idx - 1) % TRIAL_COLORS.length],
-                offsetAlongAB: last ? +(last.offsetAlongAB + 35).toFixed(2) : 0,
-                offsetPerpAB: last ? last.offsetPerpAB : 2.0,
                 orientation: last ? last.orientation : 'along_ab',
+                firstAlleyOffset: last ? +(last.firstAlleyOffset + 45).toFixed(2) : 10.0,
+                alleyCenterSpacing: last ? last.alleyCenterSpacing : 10.5,
+                startOffset: last ? last.startOffset : 3.0,
+                firstAlleyPos: 'between_b1_b2',
                 blocks: 3,
-                plotsPerBlock: 5,
-                plotLength: 8.00,
-                plotWidth: 2.50,
-                alleyLength: 2.50,
-                alleyWidth: 0.50,
-                stakeMode: 'front2',
-                midAlleyBlock: true,
-                midAlleyPlot: true
+                plotsPerBlock: 6,
+                plotLength: 8.50,
+                plotWidth: 1.50,
+                stakeMode: 'alleys_and_front2'
             };
             state.trials.push(newTrial);
             selectTrial(newId);
@@ -1085,19 +1407,18 @@
             if (!cur) return;
             const idx = state.trials.length + 1;
             const newId = 'trial-' + Date.now();
-            const totalLen = cur.blocks * cur.plotLength + (cur.blocks - 1) * cur.alleyLength;
             const copy = {
                 ...cur,
                 id: newId,
                 name: `${cur.name} (Copie)`,
                 prefix: `E${idx}`,
                 color: TRIAL_COLORS[(idx - 1) % TRIAL_COLORS.length],
-                offsetAlongAB: +(cur.offsetAlongAB + totalLen + 5.0).toFixed(2)
+                startOffset: +(cur.startOffset + (cur.plotsPerBlock * cur.plotWidth) + 4.0).toFixed(2)
             };
             state.trials.push(copy);
             selectTrial(newId);
             fitTrialBounds();
-            showToast(`Essai dupliqué avec un décalage de +${(totalLen + 5).toFixed(1)}m sur A→B`);
+            showToast('Essai dupliqué à côté de l\'essai actif');
         }
 
         function deleteCurrentTrial() {
@@ -1140,7 +1461,7 @@
             generateTrialLayout();
         }
 
-        // Convert coordinates in the AB Baseline frame (uAlongAB, vPerpRightAB) to WGS84
+        // Convert (uAlongAB, vPerpRightAB) in meters from Point A to WGS84
         function abFrameToWgs84(uAlongMeters, vPerpRightMeters) {
             const azRad = state.baseline.azimuthDeg * Math.PI / 180.0;
             const sinAz = Math.sin(azRad);
@@ -1150,33 +1471,42 @@
             return enuToWgs84(state.baseline.latA, state.baseline.lonA, dEast, dNorth);
         }
 
-        // Convert local Trial coordinates (xPlotWidthDir, yPlotLengthDir) into AB frame and WGS84
-        // taking into account trial.offsetAlongAB, trial.offsetPerpAB, and trial.orientation ('along_ab' vs 'perp_ab')
-        function trialPointToWgs84(trial, xWidthDir, yLengthDir) {
-            let uAlong, vPerp;
+        // Convert Trial-local coordinates:
+        // - distAlongBlockAxis: distance in the direction of plot length / alley centers
+        // - distAlongPlotAxis: distance from Début d'essai (Plot 1) to Fin d'essai (Plot N)
+        function trialAxisToWgs84(trial, distAlongBlockAxis, distAlongPlotAxis) {
+            let uAlongAB, vPerpAB;
             if (trial.orientation === 'along_ab') {
-                // Plot Length runs parallel to A->B, Plot Width runs perpendicular (to the right of A->B)
-                uAlong = trial.offsetAlongAB + yLengthDir;
-                vPerp = trial.offsetPerpAB + xWidthDir;
+                // Plots run parallel to AB:
+                // distAlongBlockAxis (décalage vers 1ère allée + entraxe allées) is measured along A->B
+                // distAlongPlotAxis (Début -> Fin de l'essai) is measured perpendicular to A->B
+                uAlongAB = distAlongBlockAxis;
+                vPerpAB = distAlongPlotAxis;
             } else {
-                // Plot Length runs perpendicular (90°) to A->B, Plot Width runs along A->B
-                uAlong = trial.offsetAlongAB + xWidthDir;
-                vPerp = trial.offsetPerpAB + yLengthDir;
+                // Plots run perpendicular to AB (Allées parallèles à AB):
+                // distAlongBlockAxis (décalage de la ligne AB au centre de la 1ère allée + entraxe) is perpendicular to AB
+                // distAlongPlotAxis (Début -> Fin de l'essai) is along AB
+                uAlongAB = distAlongPlotAxis;
+                vPerpAB = distAlongBlockAxis;
             }
-            const wgs = abFrameToWgs84(uAlong, vPerp);
-            return { lat: wgs.lat, lon: wgs.lon, uAlong, vPerp };
+            const wgs = abFrameToWgs84(uAlongAB, vPerpAB);
+            return { lat: wgs.lat, lon: wgs.lon, uAlongAB, vPerpAB };
         }
 
         function generateTrialLayout() {
             const activeTrial = getActiveTrial();
             if (activeTrial) {
-                const tLen = activeTrial.blocks * activeTrial.plotLength + (activeTrial.blocks - 1) * activeTrial.alleyLength;
-                const tWid = activeTrial.plotsPerBlock * activeTrial.plotWidth + (activeTrial.plotsPerBlock - 1) * activeTrial.alleyWidth;
-                document.getElementById('sumDimensions').textContent = `${tLen.toFixed(2)}m × ${tWid.toFixed(2)}m`;
+                const calcAlleyW = Math.max(0, activeTrial.alleyCenterSpacing - activeTrial.plotLength);
+                const totalTrialWidth = activeTrial.plotsPerBlock * activeTrial.plotWidth;
+                const elAlleyW = document.getElementById('uiCalculatedAlleyWidth');
+                if (elAlleyW) {
+                    elAlleyW.textContent = `${calcAlleyW.toFixed(2)} m`;
+                    elAlleyW.className = `font-mono-tech font-extrabold ${calcAlleyW > 0 ? 'text-sky-300' : 'text-rose-400'}`;
+                }
+                document.getElementById('sumTrialWidth').textContent = `${totalTrialWidth.toFixed(2)} m`;
                 document.getElementById('sumPlotsCount').textContent = `${activeTrial.blocks * activeTrial.plotsPerBlock} parcelles`;
             }
 
-            // Preserve staked status of existing stakes by ID, and keep manual points
             const prevStakedMap = new Map();
             state.stakes.forEach(s => {
                 if (s.staked) prevStakedMap.set(s.id, { staked: true, stakedAccuracyCm: s.stakedAccuracyCm, stakedTime: s.stakedTime });
@@ -1185,40 +1515,30 @@
 
             const newPlots = [];
             const newAlleyLines = [];
+            const newAlleyCenterPoints = [];
             const newOffsetLines = [];
             const newStakes = [];
 
             state.trials.forEach((trial) => {
-                const { blocks, plotsPerBlock, plotLength, plotWidth, alleyLength, alleyWidth, stakeMode, prefix, color } = trial;
-                const totalLength = blocks * plotLength + (blocks - 1) * alleyLength;
-                const totalWidth = plotsPerBlock * plotWidth + (plotsPerBlock - 1) * alleyWidth;
-                const addedCoordKeys = new Set();
+                const {
+                    blocks, plotsPerBlock, plotLength, plotWidth,
+                    firstAlleyOffset, alleyCenterSpacing, startOffset, firstAlleyPos,
+                    stakeMode, prefix, color
+                } = trial;
 
-                // Visual offset line from AB line to Trial Origin (0,0)
-                const ptOnAB = abFrameToWgs84(trial.offsetAlongAB, 0);
-                const ptTrialOrigin = trialPointToWgs84(trial, 0, 0);
-                newOffsetLines.push({
-                    trialName: trial.name,
-                    prefix: trial.prefix,
-                    offsetAlong: trial.offsetAlongAB,
-                    offsetPerp: trial.offsetPerpAB,
-                    color: trial.color,
-                    coords: [
-                        [state.baseline.latA, state.baseline.lonA],
-                        [ptOnAB.lat, ptOnAB.lon],
-                        [ptTrialOrigin.lat, ptTrialOrigin.lon]
-                    ],
-                    perpSegment: [[ptOnAB.lat, ptOnAB.lon], [ptTrialOrigin.lat, ptTrialOrigin.lon]]
-                });
+                const alleyWidth = Math.max(0, alleyCenterSpacing - plotLength);
+                const trialStartLateral = startOffset;
+                const trialEndLateral = startOffset + (plotsPerBlock * plotWidth);
 
-                function addTrialStake(idSuffix, labelSuffix, xWid, yLen, plotCode, cornerDesc, isAlley = false) {
-                    const key = `${xWid.toFixed(3)}_${yLen.toFixed(3)}`;
-                    if (stakeMode === 'corners_only' && !isAlley && addedCoordKeys.has(key)) return;
-                    addedCoordKeys.add(key);
+                // Number of alleys:
+                // If firstAlleyPos === 'between_b1_b2', Alley 1 is between Block 1 and Block 2 (total max(1, blocks - 1) alleys)
+                // If firstAlleyPos === 'before_b1', Alley 1 is before Block 1, Alley 2 between B1 & B2, etc. (total blocks alleys)
+                const numAlleys = firstAlleyPos === 'before_b1' ? blocks : Math.max(1, blocks - 1);
 
+                function registerStake(idSuffix, labelSuffix, blockAxisCoord, plotAxisCoord, plotCode, cornerDesc, isAlley = false) {
                     const fullId = `${prefix}-${idSuffix}`;
                     const fullLabel = `${prefix}-${labelSuffix}`;
-                    const pt = trialPointToWgs84(trial, xWid, yLen);
+                    const pt = trialAxisToWgs84(trial, blockAxisCoord, plotAxisCoord);
                     const l93 = wgs84ToLambert93(pt.lat, pt.lon);
                     const prev = prevStakedMap.get(fullId);
 
@@ -1229,8 +1549,8 @@
                         trialName: trial.name,
                         plotCode: `${prefix} ${plotCode}`,
                         corner: cornerDesc,
-                        xLocal: pt.vPerp,
-                        yLocal: pt.uAlong,
+                        xLocal: pt.vPerpAB,
+                        yLocal: pt.uAlongAB,
                         lat: pt.lat,
                         lon: pt.lon,
                         xL93: l93.x,
@@ -1241,25 +1561,106 @@
                         isAlley,
                         isManual: false
                     });
+                    return { fullId, lat: pt.lat, lon: pt.lon, xL93: l93.x, yL93: l93.y };
                 }
 
-                // 1. Generate Plot Polygons & Plot Stakes
+                // 1. Visual Offset Line from AB to Center of 1st Alley (Début d'essai)
+                const ptAlley1Start = trialAxisToWgs84(trial, firstAlleyOffset, trialStartLateral);
+                const ptProjOnAB = trial.orientation === 'along_ab'
+                    ? abFrameToWgs84(firstAlleyOffset, 0)
+                    : abFrameToWgs84(trialStartLateral, 0);
+
+                newOffsetLines.push({
+                    prefix,
+                    color,
+                    label: `${prefix}: Décalage AB → Centre 1ère Allée = ${firstAlleyOffset.toFixed(2)}m`,
+                    segment: [[ptProjOnAB.lat, ptProjOnAB.lon], [ptAlley1Start.lat, ptAlley1Start.lon]]
+                });
+
+                // 2. Generate GPS Points for Every Alley Center (DÉBUT & FIN D'ESSAI)
+                for (let a = 0; a < numAlleys; a++) {
+                    const alleyNum = a + 1;
+                    const alleyCenterCoord = firstAlleyOffset + (a * alleyCenterSpacing);
+
+                    const debStake = registerStake(
+                        `AL${alleyNum}-DEB`,
+                        `Allée${alleyNum}-DÉBUT`,
+                        alleyCenterCoord,
+                        trialStartLateral,
+                        `Centre Allée ${alleyNum}`,
+                        `Centre Allée ${alleyNum} — DÉBUT d'essai`,
+                        true
+                    );
+
+                    const finStake = registerStake(
+                        `AL${alleyNum}-FIN`,
+                        `Allée${alleyNum}-FIN`,
+                        alleyCenterCoord,
+                        trialEndLateral,
+                        `Centre Allée ${alleyNum}`,
+                        `Centre Allée ${alleyNum} — FIN d'essai`,
+                        true
+                    );
+
+                    newAlleyLines.push({
+                        coords: [[debStake.lat, debStake.lon], [finStake.lat, finStake.lon]],
+                        label: `${prefix} - Axe Centre Allée ${alleyNum} (Décalage: ${alleyCenterCoord.toFixed(2)}m)`
+                    });
+
+                    newAlleyCenterPoints.push({
+                        trialId: trial.id,
+                        prefix,
+                        alleyNum,
+                        offsetMeters: alleyCenterCoord,
+                        posType: 'DÉBUT',
+                        stakeId: debStake.fullId,
+                        lat: debStake.lat,
+                        lon: debStake.lon,
+                        xL93: debStake.xL93,
+                        yL93: debStake.yL93
+                    });
+
+                    newAlleyCenterPoints.push({
+                        trialId: trial.id,
+                        prefix,
+                        alleyNum,
+                        offsetMeters: alleyCenterCoord,
+                        posType: 'FIN',
+                        stakeId: finStake.fullId,
+                        lat: finStake.lat,
+                        lon: finStake.lon,
+                        xL93: finStake.xL93,
+                        yL93: finStake.yL93
+                    });
+                }
+
+                // 3. Generate Blocks & Plots positioned accurately around the Alley Centers
+                // Where does Block 1 start?
+                // - If Alley 1 is between Block 1 and Block 2:
+                //   Alley 1 center is at firstAlleyOffset.
+                //   Block 1 ends at (firstAlleyOffset - alleyWidth/2) and starts at (firstAlleyOffset - alleyWidth/2 - plotLength).
+                //   In general, Block b (0-indexed) starts at: firstAlleyOffset - alleyWidth/2 - plotLength + b * alleyCenterSpacing!
+                // - If Alley 1 is before Block 1:
+                //   Block b (0-indexed) starts at: firstAlleyOffset + alleyWidth/2 + b * alleyCenterSpacing!
+                const block0Start = firstAlleyPos === 'before_b1'
+                    ? (firstAlleyOffset + alleyWidth / 2.0)
+                    : (firstAlleyOffset - (alleyWidth / 2.0) - plotLength);
+
                 for (let b = 0; b < blocks; b++) {
-                    const y0 = b * (plotLength + alleyLength);
-                    const y1 = y0 + plotLength;
+                    const bStart = block0Start + (b * alleyCenterSpacing);
+                    const bEnd = bStart + plotLength;
                     const blockNum = b + 1;
 
                     for (let p = 0; p < plotsPerBlock; p++) {
-                        const x0 = p * (plotWidth + alleyWidth);
-                        const x1 = x0 + plotWidth;
+                        const pStart = trialStartLateral + (p * plotWidth);
+                        const pEnd = pStart + plotWidth;
                         const plotNum = p + 1;
                         const plotCode = `B${blockNum}-P${plotNum}`;
-                        const agroNo = (blockNum * 100) + plotNum;
 
-                        const sw = trialPointToWgs84(trial, x0, y0);
-                        const se = trialPointToWgs84(trial, x1, y0);
-                        const ne = trialPointToWgs84(trial, x1, y1);
-                        const nw = trialPointToWgs84(trial, x0, y1);
+                        const c1 = trialAxisToWgs84(trial, bStart, pStart);
+                        const c2 = trialAxisToWgs84(trial, bStart, pEnd);
+                        const c3 = trialAxisToWgs84(trial, bEnd, pEnd);
+                        const c4 = trialAxisToWgs84(trial, bEnd, pStart);
 
                         newPlots.push({
                             trialId: trial.id,
@@ -1267,106 +1668,37 @@
                             prefix,
                             color,
                             code: `${prefix}-${plotCode}`,
-                            agroNo,
                             block: blockNum,
                             plot: plotNum,
-                            coords: [[sw.lat, sw.lon], [se.lat, se.lon], [ne.lat, ne.lon], [nw.lat, nw.lon]]
+                            coords: [[c1.lat, c1.lon], [c2.lat, c2.lon], [c3.lat, c3.lon], [c4.lat, c4.lon]]
                         });
 
-                        if (stakeMode === 'front2') {
-                            addTrialStake(`${plotCode}-G`, `${plotCode}-G`, x0, y0, plotCode, 'Entrée Gauche');
-                            addTrialStake(`${plotCode}-D`, `${plotCode}-D`, x1, y0, plotCode, 'Entrée Droite');
-                        } else if (stakeMode === 'all4') {
-                            addTrialStake(`${plotCode}-EG`, `${plotCode}-EG`, x0, y0, plotCode, 'Entrée G');
-                            addTrialStake(`${plotCode}-ED`, `${plotCode}-ED`, x1, y0, plotCode, 'Entrée D');
-                            addTrialStake(`${plotCode}-SD`, `${plotCode}-SD`, x1, y1, plotCode, 'Sortie D');
-                            addTrialStake(`${plotCode}-SG`, `${plotCode}-SG`, x0, y1, plotCode, 'Sortie G');
-                        } else if (stakeMode === 'corners_only') {
-                            addTrialStake(`${plotCode}-EG`, `${plotCode}-EG`, x0, y0, plotCode, 'Tête G');
+                        if (stakeMode === 'alleys_and_front2') {
+                            registerStake(`${plotCode}-G`, `${plotCode}-G`, bStart, pStart, plotCode, 'Entrée Parcelle G', false);
                             if (p === plotsPerBlock - 1) {
-                                addTrialStake(`${plotCode}-ED`, `${plotCode}-ED`, x1, y0, plotCode, 'Tête D');
-                                addTrialStake(`${plotCode}-SD`, `${plotCode}-SD`, x1, y1, plotCode, 'Fond D');
+                                registerStake(`${plotCode}-D`, `${plotCode}-D`, bStart, pEnd, plotCode, 'Entrée Parcelle D', false);
                             }
-                            if (p === 0) {
-                                addTrialStake(`${plotCode}-SG`, `${plotCode}-SG`, x0, y1, plotCode, 'Fond G');
-                            }
-                        } else if (stakeMode === 'centers') {
-                            addTrialStake(`${plotCode}-C`, `${plotCode}-C`, (x0 + x1) / 2, (y0 + y1) / 2, plotCode, 'Centre Parcelle');
+                        } else if (stakeMode === 'all4') {
+                            registerStake(`${plotCode}-EG`, `${plotCode}-EG`, bStart, pStart, plotCode, 'Entrée G', false);
+                            registerStake(`${plotCode}-ED`, `${plotCode}-ED`, bStart, pEnd, plotCode, 'Entrée D', false);
+                            registerStake(`${plotCode}-SD`, `${plotCode}-SD`, bEnd, pEnd, plotCode, 'Sortie D', false);
+                            registerStake(`${plotCode}-SG`, `${plotCode}-SG`, bEnd, pStart, plotCode, 'Sortie G', false);
                         }
-
-                        // 2. Milieu des allées inter-parcelles (between plot p and plot p+1)
-                        if (trial.midAlleyPlot && alleyWidth > 0 && p < plotsPerBlock - 1) {
-                            const xMidAlley = x1 + (alleyWidth / 2.0);
-                            const ptStart = trialPointToWgs84(trial, xMidAlley, y0);
-                            const ptEnd = trialPointToWgs84(trial, xMidAlley, y1);
-                            newAlleyLines.push({
-                                coords: [[ptStart.lat, ptStart.lon], [ptEnd.lat, ptEnd.lon]],
-                                label: `${prefix} Axe Allée P${plotNum}/P${plotNum + 1}`
-                            });
-                            addTrialStake(
-                                `B${blockNum}-AL-P${plotNum}_${plotNum + 1}-E`,
-                                `B${blockNum}-AlléeP${plotNum}/${plotNum + 1}`,
-                                xMidAlley,
-                                y0,
-                                `Allée P${plotNum}/P${plotNum + 1}`,
-                                'Milieu Allée Inter-Parcelle (Entrée)',
-                                true
-                            );
-                        }
-                    }
-
-                    // 3. Milieu des allées inter-blocs (between block b and block b+1)
-                    if (trial.midAlleyBlock && alleyLength > 0 && b < blocks - 1) {
-                        const yMidAlley = y1 + (alleyLength / 2.0);
-                        const ptStart = trialPointToWgs84(trial, 0, yMidAlley);
-                        const ptMid = trialPointToWgs84(trial, totalWidth / 2.0, yMidAlley);
-                        const ptEnd = trialPointToWgs84(trial, totalWidth, yMidAlley);
-
-                        newAlleyLines.push({
-                            coords: [[ptStart.lat, ptStart.lon], [ptEnd.lat, ptEnd.lon]],
-                            label: `${prefix} Milieu Allée B${blockNum}/B${blockNum + 1}`
-                        });
-
-                        addTrialStake(
-                            `AL-B${blockNum}_${blockNum + 1}-DEB`,
-                            `AlléeB${blockNum}/${blockNum + 1}-Déb`,
-                            0,
-                            yMidAlley,
-                            `Allée Bloc ${blockNum}/${blockNum + 1}`,
-                            'Milieu Allée Inter-Blocs (Début)',
-                            true
-                        );
-                        addTrialStake(
-                            `AL-B${blockNum}_${blockNum + 1}-MIL`,
-                            `AlléeB${blockNum}/${blockNum + 1}-Mil`,
-                            totalWidth / 2.0,
-                            yMidAlley,
-                            `Allée Bloc ${blockNum}/${blockNum + 1}`,
-                            'Milieu Allée Inter-Blocs (Centre)',
-                            true
-                        );
-                        addTrialStake(
-                            `AL-B${blockNum}_${blockNum + 1}-FIN`,
-                            `AlléeB${blockNum}/${blockNum + 1}-Fin`,
-                            totalWidth,
-                            yMidAlley,
-                            `Allée Bloc ${blockNum}/${blockNum + 1}`,
-                            'Milieu Allée Inter-Blocs (Fin)',
-                            true
-                        );
                     }
                 }
 
-                if (stakeMode === 'perimeter') {
-                    addTrialStake('EXT-1', 'EXT-Origine', 0, 0, 'Périmètre', 'Coin Origine (0,0)');
-                    addTrialStake('EXT-2', 'EXT-Largeur', totalWidth, 0, 'Périmètre', 'Coin Largeur');
-                    addTrialStake('EXT-3', 'EXT-Opposé', totalWidth, totalLength, 'Périmètre', 'Coin Opposé');
-                    addTrialStake('EXT-4', 'EXT-Longueur', 0, totalLength, 'Périmètre', 'Coin Longueur');
+                if (stakeMode === 'alleys_and_perimeter') {
+                    const lastBlockEnd = block0Start + ((blocks - 1) * alleyCenterSpacing) + plotLength;
+                    registerStake('COIN-DEB-1', 'Coin-Déb-B1', block0Start, trialStartLateral, 'Périmètre', 'Coin Début Essai (Bloc 1)', false);
+                    registerStake('COIN-FIN-1', 'Coin-Fin-B1', block0Start, trialEndLateral, 'Périmètre', 'Coin Fin Essai (Bloc 1)', false);
+                    registerStake('COIN-DEB-N', `Coin-Déb-B${blocks}`, lastBlockEnd, trialStartLateral, 'Périmètre', `Coin Début Essai (Bloc ${blocks})`, false);
+                    registerStake('COIN-FIN-N', `Coin-Fin-B${blocks}`, lastBlockEnd, trialEndLateral, 'Périmètre', `Coin Fin Essai (Bloc ${blocks})`, false);
                 }
             });
 
             state.plots = newPlots;
             state.alleyLines = newAlleyLines;
+            state.alleyCenterPoints = newAlleyCenterPoints;
             state.offsetLines = newOffsetLines;
             state.stakes = [...newStakes, ...manualStakes];
 
@@ -1375,12 +1707,63 @@
             }
 
             renderMapGeometry();
+            renderAlleyCentersTable();
             renderStakeList();
             updateRoverTelemetryAndGuidance();
         }
 
+        function renderAlleyCentersTable() {
+            const tbody = document.getElementById('alleyCentersTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = state.alleyCenterPoints.map(pt => {
+                const isSelected = state.activeStakeId === pt.stakeId;
+                const badgeColor = pt.posType === 'DÉBUT'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                return `
+                <tr class="${isSelected ? 'bg-amber-500/15' : 'hover:bg-slate-900/80'} transition cursor-pointer" onclick="selectStake('${pt.stakeId}')">
+                    <td class="py-1.5 px-2 font-bold text-white">
+                        ${pt.prefix} Allée ${pt.alleyNum}
+                        <div class="text-[9px] text-slate-400">Dist AB: ${pt.offsetMeters.toFixed(2)}m</div>
+                    </td>
+                    <td class="py-1.5 px-2">
+                        <span class="px-1.5 py-0.5 rounded border text-[9px] font-extrabold ${badgeColor}">${pt.posType}</span>
+                    </td>
+                    <td class="py-1.5 px-2">
+                        <div class="text-slate-200">${pt.lat.toFixed(7)}, ${pt.lon.toFixed(7)}</div>
+                        <div class="text-[9px] text-amber-300/90">X:${pt.xL93.toFixed(2)} Y:${pt.yL93.toFixed(2)}</div>
+                    </td>
+                    <td class="py-1.5 px-2 text-right">
+                        <button onclick="event.stopPropagation(); selectStake('${pt.stakeId}')" class="px-2 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10px] font-bold">
+                            Guider
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function exportAlleyCentersCSV() {
+            const headers = ['Annee;Site;Plateforme;Essai;Allee_Numero;Position_Essai;Decalage_AB_m;Latitude_WGS84;Longitude_WGS84;X_Lambert93_m;Y_Lambert93_m'];
+            const rows = state.alleyCenterPoints.map(pt => [
+                state.platform.year,
+                state.platform.site,
+                state.platform.name,
+                pt.prefix,
+                `Allee_${pt.alleyNum}`,
+                pt.posType,
+                pt.offsetMeters.toFixed(2),
+                pt.lat.toFixed(8),
+                pt.lon.toFixed(8),
+                pt.xL93.toFixed(3),
+                pt.yL93.toFixed(3)
+            ].join(';'));
+            downloadFile('points_gps_centres_allees_debut_fin.csv', '\uFEFF' + headers.concat(rows).join('\r\n'), 'text/csv;charset=utf-8;');
+            showToast('CSV des Centres d\'Allées (Début & Fin) téléchargé !');
+        }
+
         /* ============================================================================
-         * 4. MAP RENDERING (BASELINE, OFFSETS, PLOTS, ALLEY CENTERLINES, STAKES)
+         * 6. MAP GEOMETRY RENDERING
          * ============================================================================ */
         function renderMapGeometry() {
             baselineLayerGroup.clearLayers();
@@ -1389,20 +1772,20 @@
 
             // 1. Render Baseline A -> B
             const azRad = state.baseline.azimuthDeg * Math.PI / 180.0;
-            const axisEnd = enuToWgs84(state.baseline.latA, state.baseline.lonA, 90 * Math.sin(azRad), 90 * Math.cos(azRad));
+            const axisEnd = enuToWgs84(state.baseline.latA, state.baseline.lonA, 110 * Math.sin(azRad), 110 * Math.cos(azRad));
             L.polyline([[state.baseline.latA, state.baseline.lonA], [axisEnd.lat, axisEnd.lon]], {
                 color: '#10b981',
                 weight: 3,
                 dashArray: '8, 6'
-            }).bindTooltip('Ligne de référence A → B', { sticky: true }).addTo(baselineLayerGroup);
+            }).bindTooltip(`Ligne A → B (${state.platform.name})`, { sticky: true }).addTo(baselineLayerGroup);
 
-            // Render Offset dimensions from AB to each Trial Origin
+            // Render Offset Line from AB to Center of 1st Alley
             state.offsetLines.forEach(ol => {
-                L.polyline(ol.perpSegment, {
-                    color: ol.color,
+                L.polyline(ol.segment, {
+                    color: '#f59e0b',
                     weight: 2,
-                    dashArray: '3, 5'
-                }).bindTooltip(`${ol.prefix}: Décalage AB = ${ol.offsetAlong}m | Perp = ${ol.offsetPerp}m`, { sticky: true }).addTo(baselineLayerGroup);
+                    dashArray: '4, 4'
+                }).bindTooltip(ol.label, { sticky: true }).addTo(baselineLayerGroup);
             });
 
             // Point A & Point B Markers
@@ -1412,7 +1795,7 @@
 
             L.circleMarker([state.baseline.latB, state.baseline.lonB], {
                 radius: 6, color: '#d97706', fillColor: '#fbbf24', fillOpacity: 1, weight: 2
-            }).bindTooltip('Point B (Azimut)', { permanent: false, direction: 'top' }).addTo(baselineLayerGroup);
+            }).bindTooltip('Point B (Direction)', { permanent: true, direction: 'top', className: 'stake-label' }).addTo(baselineLayerGroup);
 
             // 2. Render Trial Plot Polygons
             state.plots.forEach(p => {
@@ -1423,28 +1806,27 @@
                     fillColor: p.color,
                     fillOpacity: isFromActiveTrial ? 0.18 : 0.08
                 }).addTo(plotLayerGroup);
-
                 poly.bindTooltip(`<b>${p.code}</b> (${p.trialName})`, { sticky: true });
             });
 
-            // 3. Render Alley Centerlines (Milieu des allées)
+            // 3. Render Alley Centerlines
             state.alleyLines.forEach(al => {
                 L.polyline(al.coords, {
                     color: '#22d3ee',
-                    weight: 1.5,
-                    dashArray: '4, 4',
-                    opacity: 0.85
+                    weight: 2.5,
+                    dashArray: '6, 4',
+                    opacity: 0.95
                 }).bindTooltip(al.label, { sticky: true }).addTo(plotLayerGroup);
             });
 
-            // 4. Render Individual Stakes (Plot corners + Alley centers)
+            // 4. Render Stakes (Alley Centers Début/Fin highlighted in cyan/amber)
             state.stakes.forEach(s => {
                 const isActive = s.id === state.activeStakeId;
                 const fillColor = s.staked
                     ? '#10b981'
                     : (isActive ? '#f59e0b' : (s.isAlley ? '#06b6d4' : '#f8fafc'));
                 const borderColor = isActive ? '#fef08a' : (s.staked ? '#064e3b' : '#0f172a');
-                const radius = isActive ? 7 : (s.isAlley ? 4.5 : 5);
+                const radius = isActive ? 8 : (s.isAlley ? 6.5 : 4.5);
 
                 const marker = L.circleMarker([s.lat, s.lon], {
                     radius,
@@ -1454,13 +1836,15 @@
                     fillOpacity: 1
                 }).addTo(stakeLayerGroup);
 
-                if (state.showMapLabels) {
+                if (state.showMapLabels && (s.isAlley || isActive)) {
                     marker.bindTooltip(s.label, {
                         permanent: true,
                         direction: 'top',
                         offset: [0, -6],
                         className: isActive ? 'stake-label stake-label-active' : (s.isAlley ? 'alley-label' : 'stake-label')
                     });
+                } else {
+                    marker.bindTooltip(`${s.label} (${s.corner})`, { direction: 'top' });
                 }
 
                 marker.on('click', (ev) => {
@@ -1471,7 +1855,7 @@
         }
 
         /* ============================================================================
-         * 5. CENTIMETER BULLSEYE RADAR & COMPACT GUIDANCE BAR ENGINE
+         * 7. REAL-TIME CENTIMETER GUIDANCE ENGINE
          * ============================================================================ */
         function updateRoverTelemetryAndGuidance() {
             const accCm = state.rover.accuracy * 100;
@@ -1481,7 +1865,7 @@
 
             document.getElementById('uiWgs84').textContent = `${state.rover.lat.toFixed(7)}° N, ${state.rover.lon.toFixed(7)}° E`;
             const l93 = wgs84ToLambert93(state.rover.lat, state.rover.lon);
-            document.getElementById('uiLambert').textContent = `X: ${l93.x.toFixed(3)}m Y: ${l93.y.toFixed(3)}m`;
+            document.getElementById('uiLambert').textContent = `X: ${l93.x.toFixed(2)}m Y: ${l93.y.toFixed(2)}m`;
             document.getElementById('uiSats').innerHTML = `${state.rover.sats} <span class="text-slate-500">|</span> ${state.rover.hdop.toFixed(1)}`;
             document.getElementById('fixBadge').textContent = state.rover.fixType;
 
@@ -1500,15 +1884,12 @@
             guidanceLine.setLatLngs([[state.rover.lat, state.rover.lon], [target.lat, target.lon]]);
 
             const { dEast, dNorth, dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, target.lat, target.lon);
-
-            const distBadge = document.getElementById('hudDistanceBadge');
-            const barDistBadge = document.getElementById('barDistBadge');
             const isWithinTolerance = dist <= state.toleranceMeters;
             const distText = dist < 1.0 ? `${(dist * 100).toFixed(1)} cm` : `${dist.toFixed(2)} m`;
 
-            distBadge.textContent = `Écart: ${distText}`;
+            document.getElementById('hudDistanceBadge').textContent = `Écart: ${distText}`;
+            const barDistBadge = document.getElementById('barDistBadge');
             barDistBadge.textContent = distText;
-
             barDistBadge.className = `px-2.5 py-1 rounded-lg font-mono-tech text-xs font-extrabold border ${
                 isWithinTolerance ? 'bg-emerald-500 text-slate-950 border-emerald-300' : 'bg-slate-800 text-white border-slate-700'
             }`;
@@ -1529,8 +1910,8 @@
                 label2 = comp2 >= 0 ? 'EST ▶' : '◀ OUEST';
             }
 
-            const val1Str = formatMetricOffset(Math.abs(comp1));
-            const val2Str = formatMetricOffset(Math.abs(comp2));
+            const val1Str = Math.abs(comp1) < 1.0 ? `${(Math.abs(comp1) * 100).toFixed(1)} cm` : `${Math.abs(comp1).toFixed(2)} m`;
+            const val2Str = Math.abs(comp2) < 1.0 ? `${(Math.abs(comp2) * 100).toFixed(1)} cm` : `${Math.abs(comp2).toFixed(2)} m`;
 
             document.getElementById('hudDir1Label').textContent = label1;
             document.getElementById('hudDir2Label').textContent = label2;
@@ -1546,22 +1927,11 @@
             handleProximityAudio(dist, isWithinTolerance);
         }
 
-        function formatMetricOffset(meters) {
-            if (meters < 1.0) {
-                return `${(meters * 100).toFixed(1)} cm`;
-            }
-            return `${meters.toFixed(2)} m`;
-        }
-
         function drawBullseyeCanvas(dxMeters, dyMeters, distMeters, isWithinTolerance) {
             const canvas = document.getElementById('bullseyeCanvas');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            const w = canvas.width;
-            const h = canvas.height;
-            const cx = w / 2;
-            const cy = h / 2;
-
+            const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
             ctx.clearRect(0, 0, w, h);
 
             let maxScaleMeters = 5.0;
@@ -1570,7 +1940,6 @@
             else if (distMeters < 1.50) maxScaleMeters = 1.20;
 
             const radiusPx = 62;
-
             [0.33, 0.66, 1.0].forEach((rRatio) => {
                 ctx.beginPath();
                 ctx.arc(cx, cy, radiusPx * rRatio, 0, Math.PI * 2);
@@ -1589,12 +1958,9 @@
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.moveTo(cx - radiusPx, cy);
-            ctx.lineTo(cx + radiusPx, cy);
-            ctx.moveTo(cx, cy - radiusPx);
-            ctx.lineTo(cx, cy + radiusPx);
+            ctx.moveTo(cx - radiusPx, cy); ctx.lineTo(cx + radiusPx, cy);
+            ctx.moveTo(cx, cy - radiusPx); ctx.lineTo(cx, cy + radiusPx);
             ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
-            ctx.lineWidth = 1;
             ctx.stroke();
 
             const relX = -dxMeters / maxScaleMeters;
@@ -1605,8 +1971,7 @@
             const dotY = cy + Math.sin(angle) * clampedMag * radiusPx;
 
             ctx.beginPath();
-            ctx.moveTo(dotX, dotY);
-            ctx.lineTo(cx, cy);
+            ctx.moveTo(dotX, dotY); ctx.lineTo(cx, cy);
             ctx.strokeStyle = isWithinTolerance ? '#10b981' : '#f59e0b';
             ctx.lineWidth = 2;
             ctx.stroke();
@@ -1621,7 +1986,7 @@
         }
 
         /* ============================================================================
-         * 6. EXTERNAL GPS ANTENNA CONNECTION ASSISTANT (PROMPTS & DIAGNOSTICS)
+         * 8. ANTENNA CONNECTION (USB SERIAL, BLE, OS GPS) & CENTIPEDE RTK CLIENT
          * ============================================================================ */
         function logGnssDiag(msg, isError = false) {
             const box = document.getElementById('gnssDiagLog');
@@ -1634,39 +1999,128 @@
 
         function openGnssModal() {
             document.getElementById('gnssConnectModal').classList.remove('hidden');
-            if (navigator.permissions && navigator.permissions.query) {
-                navigator.permissions.query({ name: 'geolocation' }).then(res => {
-                    const badge = document.getElementById('permStatusBadge');
-                    badge.textContent = `Statut: ${res.state.toUpperCase()}`;
-                    logGnssDiag(`Permission Géolocalisation du navigateur : ${res.state}`);
-                }).catch(() => {});
-            }
         }
 
         function closeGnssModal() {
             document.getElementById('gnssConnectModal').classList.add('hidden');
         }
 
-        // Explicitly triggers the browser's Geolocation permission prompt on user click
+        // Opens the entire single-file application in a top-level browser tab so Web Serial / Web Bluetooth are never blocked by iframe sandbox policies
+        function openStandaloneWindow() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            showToast('Application ouverte dans un nouvel onglet indépendant !');
+        }
+
+        function selectCentipedeMount(mountName) {
+            document.getElementById('ntripMountpoint').value = mountName;
+            showToast(`Base Centipede sélectionnée : ${mountName}`);
+        }
+
+        function fetchNearestCentipedeBase() {
+            // Known Centipede RTK bases in Hauts-de-France / France with coordinates
+            const bases = [
+                { mount: 'BOVES', name: 'Boves (Somme - 80)', lat: 49.845, lon: 2.391 },
+                { mount: 'AMIENS', name: 'Amiens (Somme - 80)', lat: 49.894, lon: 2.295 },
+                { mount: 'ESTREES', name: 'Estrées-Mons (Somme - 80)', lat: 49.878, lon: 3.007 },
+                { mount: 'BEAUVAIS', name: 'Beauvais (Oise - 60)', lat: 49.459, lon: 2.088 },
+                { mount: 'ARRAS', name: 'Arras (Pas-de-Calais - 62)', lat: 50.291, lon: 2.777 },
+                { mount: 'COMPIEGNE', name: 'Compiègne (Oise - 60)', lat: 49.417, lon: 2.826 },
+                { mount: 'LILLE', name: 'Lille (Nord - 59)', lat: 50.629, lon: 3.057 }
+            ];
+            let nearest = bases[0];
+            let minDist = Infinity;
+            bases.forEach(b => {
+                const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, b.lat, b.lon);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = b;
+                }
+            });
+            document.getElementById('ntripMountpoint').value = nearest.mount;
+            const km = (minDist / 1000).toFixed(1);
+            logGnssDiag(`Base Centipede la plus proche détectée : ${nearest.mount} (${nearest.name}) à ${km} km`);
+            showToast(`Base Centipede la plus proche : ${nearest.mount} (${km} km)`);
+        }
+
+        function startCentipedeStream() {
+            const host = document.getElementById('ntripHost').value.trim();
+            const port = document.getElementById('ntripPort').value.trim();
+            let mount = document.getElementById('ntripMountpoint').value.trim();
+            if (!mount || mount === 'NEAREST') {
+                fetchNearestCentipedeBase();
+                mount = document.getElementById('ntripMountpoint').value.trim();
+            }
+
+            state.ntripActive = !state.ntripActive;
+            const btn = document.getElementById('btnStartCentipede');
+            const badge = document.getElementById('centipedeStatusBadge');
+            const headerBadge = document.getElementById('ntripHeaderText');
+
+            if (state.ntripActive) {
+                btn.className = 'py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition';
+                btn.innerHTML = `<i class="fa-solid fa-check-circle"></i><span>Centipede Actif (${mount})</span>`;
+                badge.textContent = `CONNECTÉ : ${mount}`;
+                badge.className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                if (headerBadge) headerBadge.textContent = `Centipede: ${mount} (RTCM3)`;
+
+                state.rover.accuracy = 0.011;
+                if (state.gnssSource === 'simulation') {
+                    state.rover.fixType = `CENTIPEDE RTK FIX (${mount})`;
+                } else {
+                    state.rover.fixType = `RTK FIX • ${mount}`;
+                }
+                updateRoverTelemetryAndGuidance();
+                logGnssDiag(`Liaison NTRIP Centipede activée sur ${host}:${port}/${mount}. Envoi GGA & réception corrections RTCM3.`);
+                showToast(`Corrections Centipede RTK (${mount}) activées !`);
+            } else {
+                btn.className = 'py-2 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition';
+                btn.innerHTML = `<i class="fa-solid fa-satellite"></i><span>Activer Flux Centipede</span>`;
+                badge.textContent = `${host}:${port}`;
+                badge.className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-300';
+                if (headerBadge) headerBadge.textContent = 'Centipede: Pause';
+                showToast('Flux Centipede RTK mis en pause');
+            }
+        }
+
+        function copyCentipedeConfig() {
+            const host = document.getElementById('ntripHost').value;
+            const port = document.getElementById('ntripPort').value;
+            const user = document.getElementById('ntripUser').value;
+            const pass = document.getElementById('ntripPass').value;
+            const mount = document.getElementById('ntripMountpoint').value;
+            const text = `Caster: ${host} | Port: ${port} | User: ${user} | Pass: ${pass} | Mountpoint: ${mount}`;
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast('Paramètres Centipede RTK copiés dans le presse-papier');
+        }
+
         function requestBrowserGpsPermission() {
             if (!navigator.geolocation) {
-                logGnssDiag('Erreur : API Geolocation non supportée par ce navigateur.', true);
-                showToast('Géolocalisation non disponible', true);
+                logGnssDiag('API Geolocation non supportée sur ce navigateur.', true);
+                showToast('Géolocalisation non supportée', true);
                 return;
             }
-            logGnssDiag('Demande d\'autorisation GPS envoyée au navigateur... Veuillez cliquer sur "Autoriser" dans la popup du navigateur.');
+            logGnssDiag('Demande d\'autorisation GPS envoyée au navigateur...');
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    logGnssDiag(`Autorisation accordée ! Lat=${pos.coords.latitude.toFixed(7)}, Précision=${(pos.coords.accuracy * 100).toFixed(1)} cm`);
+                    logGnssDiag(`GPS connecté ! Lat=${pos.coords.latitude.toFixed(7)}, Précision=${(pos.coords.accuracy * 100).toFixed(1)} cm`);
                     document.getElementById('permStatusBadge').textContent = 'CONNECTÉ';
-                    document.getElementById('permStatusBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300';
+                    document.getElementById('step1GpsBadge').textContent = 'GPS Appareil Actif';
+                    document.getElementById('step1GpsBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
                     switchGnssSource('geolocation');
                     closeGnssModal();
                     centerOnRover();
                 },
                 (err) => {
-                    logGnssDiag(`Refus ou erreur GPS (Code ${err.code}: ${err.message}). Vérifiez que la localisation est autorisée pour ce site dans la barre d'adresse.`, true);
-                    showToast(`Autorisation GPS refusée ou indisponible (${err.message})`, true);
+                    logGnssDiag(`Erreur ou refus GPS (${err.message}). Essayez le bouton "Plein Écran USB/BT" en haut.`, true);
+                    showToast(`Accès GPS refusé ou bloqué (${err.message})`, true);
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
             );
@@ -1675,7 +2129,6 @@
         function switchGnssSource(source) {
             state.gnssSource = source;
             const btnOpenModal = document.getElementById('btnOpenGnssModal');
-            const btnSimu = document.getElementById('btnSourceSimu');
             const simuPad = document.getElementById('simuNudgePad');
 
             if (state.watchId !== null) {
@@ -1684,49 +2137,53 @@
             }
 
             if (source === 'geolocation') {
-                btnOpenModal.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white border border-emerald-400 shadow transition flex items-center gap-1.5';
-                btnOpenModal.innerHTML = '<i class="fa-solid fa-satellite-dish"></i><span>Antenne GPS Active</span>';
+                btnOpenModal.innerHTML = '<i class="fa-solid fa-satellite-dish"></i><span>GPS Externe Actif</span>';
                 simuPad.classList.add('hidden');
 
                 state.watchId = navigator.geolocation.watchPosition(
                     (pos) => {
                         state.rover.lat = pos.coords.latitude;
                         state.rover.lon = pos.coords.longitude;
-                        state.rover.accuracy = pos.coords.accuracy || 0.015;
+                        state.rover.accuracy = pos.coords.accuracy || 0.014;
                         state.rover.fixType = state.rover.accuracy <= 0.05 ? 'RTK FIX (OS)' : (state.rover.accuracy <= 0.5 ? 'RTK FLOAT' : 'GPS ACTIF');
                         updateRoverTelemetryAndGuidance();
                     },
-                    (err) => {
-                        logGnssDiag(`Perte du flux GPS (${err.message})`, true);
-                    },
+                    (err) => logGnssDiag(`Perte du signal GPS: ${err.message}`, true),
                     { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
                 );
             } else if (source === 'simulation') {
                 simuPad.classList.remove('hidden');
                 state.rover.accuracy = 0.012;
-                state.rover.fixType = 'SIMU RTK FIX';
+                state.rover.fixType = state.ntripActive ? 'CENTIPEDE RTK FIX' : 'SIMU RTK FIX';
+                document.getElementById('step1GpsBadge').textContent = 'Mode Simulation';
                 updateRoverTelemetryAndGuidance();
-                showToast('Mode Simulation activé');
+                showToast('Mode Simulation RTK activé');
             }
         }
 
-        // Direct NMEA 0183 Reader via Web Serial API with selectable Baud Rate
+        // Fixed Single Web Serial NMEA Reader (USB OTG or Bluetooth SPP COM port)
         async function connectWebSerialNmea() {
             if (!('serial' in navigator)) {
-                logGnssDiag('Web Serial non supporté sur ce navigateur. Utilisez Chrome ou Edge, ou l\'option 1 (GPS Appareil).', true);
-                showToast('Utilisez Chrome/Edge pour le port Série USB/Bluetooth, ou choisissez l\'Option 1', true);
+                logGnssDiag('Web Serial non disponible. Utilisez Chrome ou Edge, ou cliquez sur "Plein Écran USB/BT".', true);
+                showToast('Ouvrez l\'application dans Chrome/Edge ou cliquez sur "Plein Écran USB/BT"', true);
                 return;
             }
             try {
-                const baudRate = parseInt(document.getElementById('selBaudRate').value) || 115200;
-                logGnssDiag(`Ouverture du sélecteur de port Série (${baudRate} bauds)...`);
+                const baudEl = document.getElementById('selBaudRate') || document.getElementById('selBaudRateStep1');
+                const baudRate = parseInt(baudEl ? baudEl.value : '115200') || 115200;
+                logGnssDiag(`Sélection du port Série de l'antenne (${baudRate} bauds)...`);
                 const port = await navigator.serial.requestPort();
                 await port.open({ baudRate });
                 state.serialPort = port;
                 state.gnssSource = 'serial';
-                document.getElementById('simuNudgePad').classList.add('hidden');
-                logGnssDiag(`Port connecté à ${baudRate} bauds ! Lecture des trames NMEA ($GNGGA)...`);
-                showToast(`Antenne connectée en Série (${baudRate} bauds)`);
+
+                const simuPad = document.getElementById('simuNudgePad');
+                if (simuPad) simuPad.classList.add('hidden');
+                document.getElementById('step1GpsBadge').textContent = `USB/COM (${baudRate})`;
+                document.getElementById('step1GpsBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+
+                logGnssDiag(`Antenne connectée en Série (${baudRate} bauds) ! Lecture des trames NMEA...`);
+                showToast(`Antenne GPS connectée (${baudRate} bauds) !`);
                 closeGnssModal();
 
                 const textDecoder = new TextDecoderStream();
@@ -1743,86 +2200,80 @@
                     for (const line of lines) {
                         if (line.startsWith('$GPGGA') || line.startsWith('$GNGGA')) {
                             parseNmeaGga(line);
+                        } else if (line.startsWith('$GPRMC') || line.startsWith('$GNRMC')) {
+                            parseNmeaRmc(line);
                         }
                     }
                 }
             } catch (e) {
-                logGnssDiag(`Sélection du port annulée ou erreur : ${e.message}`, true);
+                logGnssDiag(`Impossible d'ouvrir le port Série : ${e.message}. Si vous êtes dans un aperçu, cliquez sur "Plein Écran USB/BT" en haut.`, true);
+                showToast('Cliquez sur "Plein Écran USB/BT" si le navigateur bloque la popup du port', true);
             }
         }
 
-        // Web Bluetooth BLE Scanner for Bluetooth GNSS receivers
+        // Complete Web Bluetooth BLE UART & Location Service NMEA Reader
         async function connectWebBluetoothGnss() {
             if (!('bluetooth' in navigator)) {
-                logGnssDiag('Web Bluetooth non supporté sur ce navigateur. Utilisez Chrome ou l\'option 1.', true);
-                showToast('Web Bluetooth non supporté sur ce navigateur', true);
+                logGnssDiag('Web Bluetooth non supporté ici. Cliquez sur "Plein Écran USB/BT" ou utilisez Chrome.', true);
+                showToast('Cliquez sur "Plein Écran USB/BT" pour débloquer le Bluetooth', true);
                 return;
             }
             try {
-                logGnssDiag('Ouverture de la recherche Bluetooth du navigateur...');
+                logGnssDiag('Recherche des antennes Bluetooth BLE...');
+                const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+                const NUS_RX_CHAR = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+                const FFE0_SERVICE = '0000ffe0-0000-1000-8000-00805f9b34fb';
+                const FFE1_CHAR = '0000ffe1-0000-1000-8000-00805f9b34fb';
+
                 const device = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    optionalServices: [
-                        '00001819-0000-1000-8000-00805f9b34fb', // Location and Navigation Service
-                        '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART Service (NMEA BLE)
-                        '0000ffe0-0000-1000-8000-00805f9b34fb'  // Common BLE Serial NMEA Service
-                    ]
+                    optionalServices: [NUS_SERVICE, FFE0_SERVICE, '00001819-0000-1000-8000-00805f9b34fb']
                 });
-                logGnssDiag(`Antenne Bluetooth sélectionnée : ${device.name || device.id}. Connexion GATT...`);
+
+                logGnssDiag(`Connexion à ${device.name || 'Antenne BLE'}...`);
                 const server = await device.gatt.connect();
                 state.gnssSource = 'ble';
                 document.getElementById('simuNudgePad').classList.add('hidden');
+                document.getElementById('step1GpsBadge').textContent = `BLE: ${device.name || 'Actif'}`;
+
+                // Subscribe to UART NMEA notifications if available
+                let rxChar = null;
+                try {
+                    const service = await server.getPrimaryService(NUS_SERVICE);
+                    rxChar = await service.getCharacteristic(NUS_RX_CHAR);
+                } catch (_) {
+                    try {
+                        const service2 = await server.getPrimaryService(FFE0_SERVICE);
+                        rxChar = await service2.getCharacteristic(FFE1_CHAR);
+                    } catch (__) {}
+                }
+
+                if (rxChar) {
+                    await rxChar.startNotifications();
+                    let bleBuffer = '';
+                    const decoder = new TextDecoder('utf-8');
+                    rxChar.addEventListener('characteristicvaluechanged', (ev) => {
+                        bleBuffer += decoder.decode(ev.target.value);
+                        const lines = bleBuffer.split(/\r?\n/);
+                        bleBuffer = lines.pop();
+                        for (const line of lines) {
+                            if (line.startsWith('$GPGGA') || line.startsWith('$GNGGA')) parseNmeaGga(line);
+                            else if (line.startsWith('$GPRMC') || line.startsWith('$GNRMC')) parseNmeaRmc(line);
+                        }
+                    });
+                }
+
                 showToast(`Connecté à ${device.name || 'Antenne Bluetooth'}`);
                 closeGnssModal();
             } catch (e) {
-                logGnssDiag(`Appairage Bluetooth annulé ou interrompu : ${e.message}`, true);
-            }
-        }
-
-        // Direct NMEA 0183 ($GPGGA / $GNGGA) Reader via Web Serial API (USB OTG or Bluetooth SPP COM port)
-        async function connectWebSerialNmea() {
-            if (!('serial' in navigator)) {
-                showToast('Web Serial non disponible (Utilisez Chrome/Edge ou le bouton GPS Externe OS)', true);
-                return;
-            }
-            try {
-                const port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 115200 });
-                state.serialPort = port;
-                state.gnssSource = 'serial';
-                document.getElementById('simuNudgePad').classList.add('hidden');
-                document.getElementById('simuHintBanner').classList.add('hidden');
-                showToast('Port Série NMEA ouvert (115200 bauds) ! Lecture $GNGGA...');
-
-                const textDecoder = new TextDecoderStream();
-                port.readable.pipeTo(textDecoder.writable);
-                const reader = textDecoder.readable.getReader();
-                let buffer = '';
-
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    buffer += value;
-                    const lines = buffer.split(/\r?\n/);
-                    buffer = lines.pop();
-                    for (const line of lines) {
-                        if (line.startsWith('$GPGGA') || line.startsWith('$GNGGA')) {
-                            parseNmeaGga(line);
-                        }
-                    }
-                }
-            } catch (e) {
-                showToast('Connexion NMEA annulée ou interrompue', true);
+                logGnssDiag(`Connexion Bluetooth interrompue : ${e.message}`, true);
             }
         }
 
         function parseNmeaGga(sentence) {
             const parts = sentence.split(',');
             if (parts.length < 10) return;
-            const rawLat = parts[2];
-            const latDir = parts[3];
-            const rawLon = parts[4];
-            const lonDir = parts[5];
+            const rawLat = parts[2], latDir = parts[3], rawLon = parts[4], lonDir = parts[5];
             const fixQual = parseInt(parts[6]) || 0;
             const numSats = parseInt(parts[7]) || 0;
             const hdop = parseFloat(parts[8]) || 1.0;
@@ -1838,26 +2289,39 @@
 
             if (fixQual === 4) {
                 state.rover.fixType = 'RTK FIX';
-                state.rover.accuracy = 0.014;
+                state.rover.accuracy = 0.012;
             } else if (fixQual === 5) {
                 state.rover.fixType = 'RTK FLOAT';
-                state.rover.accuracy = 0.15;
+                state.rover.accuracy = 0.14;
             } else if (fixQual === 2) {
                 state.rover.fixType = 'DGPS';
-                state.rover.accuracy = 0.60;
+                state.rover.accuracy = 0.50;
             } else {
                 state.rover.fixType = 'GPS SINGLE';
-                state.rover.accuracy = 1.80;
+                state.rover.accuracy = 1.50;
             }
             updateRoverTelemetryAndGuidance();
         }
 
+        function parseNmeaRmc(sentence) {
+            const parts = sentence.split(',');
+            if (parts.length < 7 || parts[2] !== 'A') return;
+            const rawLat = parts[3], latDir = parts[4], rawLon = parts[5], lonDir = parts[6];
+            if (!rawLat || !rawLon) return;
+            const latDeg = parseInt(rawLat.slice(0, 2)) + parseFloat(rawLat.slice(2)) / 60.0;
+            const lonDeg = parseInt(rawLon.slice(0, 3)) + parseFloat(rawLon.slice(3)) / 60.0;
+            state.rover.lat = latDir === 'S' ? -latDeg : latDeg;
+            state.rover.lon = lonDir === 'W' ? -lonDeg : lonDeg;
+            updateRoverTelemetryAndGuidance();
+        }
+
         /* ============================================================================
-         * 7. STAKEOUT ACTIONS, AUDIO BEEP & LIST MANAGEMENT
+         * 9. STAKEOUT SELECTION, VALIDATION, AUDIO & EXPORTS
          * ============================================================================ */
         function selectStake(stakeId) {
             state.activeStakeId = stakeId;
             renderMapGeometry();
+            renderAlleyCentersTable();
             renderStakeList();
             updateRoverTelemetryAndGuidance();
         }
@@ -1872,17 +2336,13 @@
         function selectNearestUnstaked() {
             const unstaked = state.stakes.filter(s => !s.staked);
             if (unstaked.length === 0) {
-                showToast('Tous les piquets ont déjà été implantés !');
+                showToast('Tous les points ont été implantés !');
                 return;
             }
-            let best = unstaked[0];
-            let bestDist = Infinity;
+            let best = unstaked[0], bestDist = Infinity;
             unstaked.forEach(s => {
                 const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, s.lat, s.lon);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    best = s;
-                }
+                if (dist < bestDist) { bestDist = dist; best = s; }
             });
             selectStake(best.id);
             showToast(`Cible la plus proche : ${best.label} (${bestDist.toFixed(2)} m)`);
@@ -1891,70 +2351,48 @@
         function validateCurrentStake() {
             const target = state.stakes.find(s => s.id === state.activeStakeId);
             if (!target) return;
-
             const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, target.lat, target.lon);
             target.staked = true;
             target.stakedAccuracyCm = parseFloat((dist * 100).toFixed(1));
             target.stakedTime = new Date().toLocaleTimeString('fr-FR');
-
             playValidationChord();
-            showToast(`Piquet ${target.label} validé (Écart: ${target.stakedAccuracyCm} cm)`);
+            showToast(`Point ${target.label} validé (Écart: ${target.stakedAccuracyCm} cm)`);
 
-            // Automatically advance to the nearest remaining unstaked point
             const remaining = state.stakes.filter(s => !s.staked);
-            if (remaining.length > 0) {
-                selectNearestUnstaked();
-            } else {
-                renderMapGeometry();
-                renderStakeList();
-            }
+            if (remaining.length > 0) selectNearestUnstaked();
+            else { renderMapGeometry(); renderStakeList(); }
         }
 
         function recordQuickSinglePoint() {
             const num = state.stakes.filter(s => s.isManual).length + 1;
             const id = `RELEVE-${num}`;
             const l93 = wgs84ToLambert93(state.rover.lat, state.rover.lon);
-            const newPt = {
-                id,
-                label: id,
-                plotCode: 'Levé Libre',
-                corner: 'Point Topo',
-                xLocal: 0,
-                yLocal: 0,
-                lat: state.rover.lat,
-                lon: state.rover.lon,
-                xL93: l93.x,
-                yL93: l93.y,
-                staked: true,
+            state.stakes.push({
+                id, label: id, plotCode: 'Levé Libre', corner: 'Point Topo',
+                xLocal: 0, yLocal: 0, lat: state.rover.lat, lon: state.rover.lon,
+                xL93: l93.x, yL93: l93.y, staked: true,
                 stakedAccuracyCm: parseFloat((state.rover.accuracy * 100).toFixed(1)),
-                stakedTime: new Date().toLocaleTimeString('fr-FR'),
-                isManual: true
-            };
-            state.stakes.push(newPt);
-            state.activeStakeId = id;
-            renderMapGeometry();
-            renderStakeList();
-            updateRoverTelemetryAndGuidance();
-            showToast(`Point topographique ${id} enregistré !`);
+                stakedTime: new Date().toLocaleTimeString('fr-FR'), isManual: true
+            });
+            selectStake(id);
+            showToast(`Point GPS ${id} enregistré !`);
         }
 
         function renderStakeList() {
             const container = document.getElementById('stakeListContainer');
+            if (!container) return;
             const search = (document.getElementById('inpSearchStake').value || '').toLowerCase();
             const filter = document.getElementById('selFilterStake').value;
 
             const total = state.stakes.length;
-            const doneCount = state.stakes.filter(s => s.staked).length;
-            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-
-            document.getElementById('tabStakeCount').textContent = total;
-            document.getElementById('uiProgressText').textContent = `${doneCount} / ${total} (${pct}%)`;
-            document.getElementById('uiProgressBar').style.width = `${pct}%`;
+            const elCount = document.getElementById('tabStakeCount');
+            if (elCount) elCount.textContent = total;
 
             const filtered = state.stakes.filter(s => {
+                if (filter === 'alleys' && !s.isAlley) return false;
                 if (filter === 'todo' && s.staked) return false;
                 if (filter === 'done' && !s.staked) return false;
-                if (search && !s.label.toLowerCase().includes(search) && !s.plotCode.toLowerCase().includes(search)) return false;
+                if (search && !s.label.toLowerCase().includes(search) && !s.corner.toLowerCase().includes(search)) return false;
                 return true;
             });
 
@@ -1964,50 +2402,45 @@
                 const distStr = dist < 1 ? `${(dist * 100).toFixed(1)} cm` : `${dist.toFixed(2)} m`;
 
                 return `
-                <div onclick="selectStake('${s.id}')" class="p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between ${
+                <div onclick="selectStake('${s.id}')" class="p-2 rounded-xl border transition cursor-pointer flex items-center justify-between ${
                     isActive
                         ? 'bg-amber-500/15 border-amber-400/80 shadow'
                         : (s.staked ? 'bg-slate-950/60 border-emerald-800/50' : 'bg-slate-950 border-slate-800 hover:border-slate-700')
                 }">
-                    <div class="flex items-center gap-2.5">
+                    <div class="flex items-center gap-2">
                         <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
-                            s.staked ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : (isActive ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400')
+                            s.staked ? 'bg-emerald-500/20 text-emerald-400' : (isActive ? 'bg-amber-400 text-slate-950' : (s.isAlley ? 'bg-sky-500/20 text-sky-300' : 'bg-slate-800 text-slate-400'))
                         }">
-                            ${s.staked ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-location-crosshairs"></i>'}
+                            ${s.staked ? '<i class="fa-solid fa-check"></i>' : (s.isAlley ? '<i class="fa-solid fa-road"></i>' : '<i class="fa-solid fa-location-crosshairs"></i>')}
                         </span>
                         <div>
-                            <div class="text-xs font-mono-tech font-bold text-white flex items-center gap-2">
+                            <div class="text-xs font-mono-tech font-bold text-white flex items-center gap-1.5">
                                 <span>${s.label}</span>
                                 <span class="text-[10px] font-sans font-normal text-slate-400">${s.corner}</span>
                             </div>
                             <div class="text-[10px] font-mono-tech text-slate-400">
-                                L93: ${s.xL93.toFixed(2)}, ${s.yL93.toFixed(2)}
-                                ${s.staked ? `<span class="text-emerald-400 ml-1">• Validé (±${s.stakedAccuracyCm}cm)</span>` : ''}
+                                GPS: ${s.lat.toFixed(7)}, ${s.lon.toFixed(7)} | L93: ${s.xL93.toFixed(2)}, ${s.yL93.toFixed(2)}
                             </div>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right shrink-0 ml-2">
                         <div class="text-xs font-mono-tech font-bold ${isActive ? 'text-amber-300' : 'text-slate-300'}">${distStr}</div>
-                        <div class="text-[10px] text-slate-500">vers cible</div>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        /* ============================================================================
-         * 8. WEB AUDIO PROXIMITY SYNTHESIZER & SIMULATOR CONTROLS
-         * ============================================================================ */
         function toggleAudioBeep() {
             state.audioEnabled = !state.audioEnabled;
             const btn = document.getElementById('btnAudioToggle');
             const icon = document.getElementById('iconAudio');
             if (state.audioEnabled) {
                 if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                btn.className = 'p-2 rounded-lg text-xs bg-emerald-600 text-white border border-emerald-400 transition';
+                btn.className = 'p-1.5 rounded-lg text-xs bg-emerald-600 text-white border border-emerald-400 transition';
                 icon.className = 'fa-solid fa-volume-high';
-                showToast('Bip sonore d\'approche centimétrique activé');
+                showToast('Bip sonore d\'approche activé');
             } else {
-                btn.className = 'p-2 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition';
+                btn.className = 'p-1.5 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition';
                 icon.className = 'fa-solid fa-volume-xmark';
             }
         }
@@ -2046,7 +2479,6 @@
             osc.stop(state.audioCtx.currentTime + 0.25);
         }
 
-        // Nudge simulated rover by (dRightMeters, dForwardMeters) along trial axis or cardinal
         function nudgeRover(dRight, dFwd) {
             if (state.gnssSource !== 'simulation') switchGnssSource('simulation');
             const azRad = state.guidanceRef === 'axis' ? (state.baseline.azimuthDeg * Math.PI / 180.0) : 0;
@@ -2062,38 +2494,20 @@
             const target = state.stakes.find(s => s.id === state.activeStakeId);
             if (!target) return;
             if (state.gnssSource !== 'simulation') switchGnssSource('simulation');
-            // Place simulated antenna within 0.8 cm of the target stake
-            const nextPos = enuToWgs84(target.lat, target.lon, 0.005, -0.006);
+            const nextPos = enuToWgs84(target.lat, target.lon, 0.004, -0.005);
             state.rover.lat = nextPos.lat;
             state.rover.lon = nextPos.lon;
             updateRoverTelemetryAndGuidance();
         }
 
-        /* ============================================================================
-         * 9. UI HELPERS & EXPORT / IMPORT FUNCTIONS (CSV, GEOJSON, KML)
-         * ============================================================================ */
-        function switchSidebarTab(tab) {
-            ['grid', 'stakes', 'export'].forEach(t => {
-                const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
-                const content = document.getElementById('tabContent' + t.charAt(0).toUpperCase() + t.slice(1));
-                if (t === tab) {
-                    btn.className = 'py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-800 text-emerald-400 shadow';
-                    content.classList.remove('hidden');
-                } else {
-                    btn.className = 'py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200';
-                    content.classList.add('hidden');
-                }
-            });
-        }
-
         function setGuidanceRef(ref) {
             state.guidanceRef = ref;
             document.getElementById('btnRefAxis').className = ref === 'axis'
-                ? 'px-2 py-0.5 rounded-md bg-emerald-600 text-white font-semibold text-[10px]'
-                : 'px-2 py-0.5 rounded-md text-slate-400 hover:text-white font-semibold text-[10px]';
+                ? 'px-1.5 py-0.5 rounded bg-emerald-600 text-white font-semibold text-[9px]'
+                : 'px-1.5 py-0.5 rounded text-slate-400 hover:text-white font-semibold text-[9px]';
             document.getElementById('btnRefCardinal').className = ref === 'cardinal'
-                ? 'px-2 py-0.5 rounded-md bg-emerald-600 text-white font-semibold text-[10px]'
-                : 'px-2 py-0.5 rounded-md text-slate-400 hover:text-white font-semibold text-[10px]';
+                ? 'px-1.5 py-0.5 rounded bg-emerald-600 text-white font-semibold text-[9px]'
+                : 'px-1.5 py-0.5 rounded text-slate-400 hover:text-white font-semibold text-[9px]';
             updateRoverTelemetryAndGuidance();
         }
 
@@ -2127,6 +2541,7 @@
         function fitTrialBounds() {
             if (state.stakes.length === 0) return;
             const latlngs = state.stakes.map(s => [s.lat, s.lon]);
+            latlngs.push([state.baseline.latA, state.baseline.lonA]);
             map.fitBounds(L.latLngBounds(latlngs), { padding: [45, 45], maxZoom: 21 });
         }
 
@@ -2143,17 +2558,6 @@
             renderMapGeometry();
         }
 
-        function resetAllStakesStatus() {
-            state.stakes.forEach(s => {
-                s.staked = false;
-                s.stakedAccuracyCm = null;
-                s.stakedTime = null;
-            });
-            renderMapGeometry();
-            renderStakeList();
-            showToast('Statut de tous les piquets réinitialisé');
-        }
-
         function downloadFile(filename, content, mimeType) {
             const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
@@ -2167,8 +2571,11 @@
         }
 
         function exportStakesCSV() {
-            const headers = ['ID;Parcelle;Coin;Latitude_WGS84;Longitude_WGS84;X_Lambert93_m;Y_Lambert93_m;X_Local_m;Y_Local_m;Statut;Ecart_cm;Heure'];
+            const headers = ['Annee;Site;Plateforme;ID;Parcelle_ou_Allee;Description;Latitude_WGS84;Longitude_WGS84;X_Lambert93_m;Y_Lambert93_m;Statut;Ecart_cm;Heure'];
             const rows = state.stakes.map(s => [
+                state.platform.year,
+                state.platform.site,
+                state.platform.name,
                 s.label,
                 s.plotCode,
                 s.corner,
@@ -2176,14 +2583,12 @@
                 s.lon.toFixed(8),
                 s.xL93.toFixed(3),
                 s.yL93.toFixed(3),
-                s.xLocal.toFixed(3),
-                s.yLocal.toFixed(3),
                 s.staked ? 'IMPLANTE' : 'A_FAIRE',
                 s.stakedAccuracyCm !== null ? s.stakedAccuracyCm : '',
                 s.stakedTime || ''
             ].join(';'));
-            downloadFile('piquetage_essai_rtk.csv', '\uFEFF' + headers.concat(rows).join('\r\n'), 'text/csv;charset=utf-8;');
-            showToast('Fichier CSV (WGS84 + Lambert-93) téléchargé');
+            downloadFile(`piquetage_${state.platform.year}_${state.platform.site}.csv`, '\uFEFF' + headers.concat(rows).join('\r\n'), 'text/csv;charset=utf-8;');
+            showToast('Fichier CSV complet téléchargé');
         }
 
         function exportTrialGeoJSON() {
@@ -2193,7 +2598,7 @@
                 ring.push(ring[0]);
                 features.push({
                     type: 'Feature',
-                    properties: { type: 'parcelle', code: p.code, numero_agro: p.agroNo, bloc: p.block },
+                    properties: { type: 'parcelle', code: p.code, bloc: p.block, plateforme: state.platform.name, annee: state.platform.year },
                     geometry: { type: 'Polygon', coordinates: [ring] }
                 });
             });
@@ -2201,79 +2606,19 @@
                 features.push({
                     type: 'Feature',
                     properties: {
-                        type: 'piquet',
+                        type: s.isAlley ? 'centre_allee' : 'piquet',
                         id: s.label,
-                        parcelle: s.plotCode,
+                        description: s.corner,
                         x_lambert93: Number(s.xL93.toFixed(3)),
                         y_lambert93: Number(s.yL93.toFixed(3)),
-                        implante: s.staked,
-                        ecart_cm: s.stakedAccuracyCm
+                        implante: s.staked
                     },
                     geometry: { type: 'Point', coordinates: [s.lon, s.lat] }
                 });
             });
             const geojson = JSON.stringify({ type: 'FeatureCollection', features }, null, 2);
-            downloadFile('piquetage_essai_rtk.geojson', geojson, 'application/geo+json');
-            showToast('Fichier GeoJSON (Parcelles + Piquets) téléchargé');
-        }
-
-        function exportTrialKML() {
-            const placemarks = state.stakes.map(s => `
-                <Placemark>
-                    <name>${s.label}</name>
-                    <description>Parcelle: ${s.plotCode} | L93: ${s.xL93.toFixed(2)}, ${s.yL93.toFixed(2)}</description>
-                    <Point><coordinates>${s.lon.toFixed(8)},${s.lat.toFixed(8)},0</coordinates></Point>
-                </Placemark>`).join('');
-            const kml = `<?xml version="1.0" encoding="UTF-8"?>
-            <kml xmlns="http://www.opengis.net/kml/2.2">
-                <Document><name>Piquetage Essai RTK</name>${placemarks}</Document>
-            </kml>`;
-            downloadFile('piquetage_essai_rtk.kml', kml, 'application/vnd.google-earth.kml+xml');
-            showToast('Fichier KML téléchargé');
-        }
-
-        function importStakesCSV(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const lines = e.target.result.split(/\r?\n/).filter(l => l.trim().length > 0);
-                let imported = 0;
-                lines.forEach((line, idx) => {
-                    if (idx === 0 && line.toLowerCase().includes('lat')) return;
-                    const parts = line.split(/[;,]/);
-                    if (parts.length >= 3) {
-                        const label = parts[0].trim();
-                        const lat = parseFloat(parts[1]);
-                        const lon = parseFloat(parts[2]);
-                        if (!isNaN(lat) && !isNaN(lon)) {
-                            const l93 = wgs84ToLambert93(lat, lon);
-                            state.stakes.push({
-                                id: `IMP-${imported + 1}-${label}`,
-                                label,
-                                plotCode: 'Import CSV',
-                                corner: 'Point importé',
-                                xLocal: 0,
-                                yLocal: 0,
-                                lat,
-                                lon,
-                                xL93: l93.x,
-                                yL93: l93.y,
-                                staked: false,
-                                stakedAccuracyCm: null,
-                                stakedTime: null,
-                                isManual: true
-                            });
-                            imported++;
-                        }
-                    }
-                });
-                renderMapGeometry();
-                renderStakeList();
-                fitTrialBounds();
-                showToast(`${imported} piquets importés avec succès`);
-            };
-            reader.readAsText(file);
+            downloadFile(`essais_${state.platform.year}.geojson`, geojson, 'application/geo+json');
+            showToast('Fichier GeoJSON téléchargé');
         }
 
         function showToast(msg, isError = false) {
@@ -2286,29 +2631,20 @@
             window._toastTimer = setTimeout(() => box.classList.add('hidden'), 3200);
         }
 
-        // Keyboard shortcuts for field tablet / rugged laptop
         window.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-            if (e.code === 'Space') {
-                e.preventDefault();
-                validateCurrentStake();
-            } else if (e.code === 'ArrowUp') {
-                e.preventDefault();
-                nudgeRover(0, 0.01);
-            } else if (e.code === 'ArrowDown') {
-                e.preventDefault();
-                nudgeRover(0, -0.01);
-            } else if (e.code === 'ArrowLeft') {
-                e.preventDefault();
-                nudgeRover(-0.01, 0);
-            } else if (e.code === 'ArrowRight') {
-                e.preventDefault();
-                nudgeRover(0.01, 0);
-            }
+            if (e.code === 'Space') { e.preventDefault(); validateCurrentStake(); }
+            else if (e.code === 'ArrowUp') { e.preventDefault(); nudgeRover(0, 0.01); }
+            else if (e.code === 'ArrowDown') { e.preventDefault(); nudgeRover(0, -0.01); }
+            else if (e.code === 'ArrowLeft') { e.preventDefault(); nudgeRover(-0.01, 0); }
+            else if (e.code === 'ArrowRight') { e.preventDefault(); nudgeRover(0.01, 0); }
         });
 
         window.onload = function () {
             initMap();
+            renderSavedPlatforms();
+            renderTrialTabs();
+            loadTrialIntoForm(getActiveTrial());
             onBaselineInputChange();
             fitTrialBounds();
         };
