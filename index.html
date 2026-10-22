@@ -208,169 +208,184 @@
             </div>
 
             <!-- ================================================================= -->
-            <!-- CONTENU ÉTAPE 1 : CONNEXION SIMPLIFIÉE & DIAGNOSTIC EN DIRECT     -->
+            <!-- CONTENU ÉTAPE 1 : CONNEXION STYLE "SW MAPS" & DIAGNOSTIC DIRECT   -->
             <!-- ================================================================= -->
             <div id="step-panel-1" class="flex-1 overflow-y-auto p-3 space-y-3">
 
-                <!-- TABLEAU DE CONTRÔLE VISUEL : SUIS-JE BIEN CONNECTÉ ? -->
+                <!-- ALERTE SI L'APERÇU BLOQUE LE PORT USB DIRECT -->
+                <div id="iframe-usb-warning" class="hidden rounded-xl p-2.5 bg-amber-950/80 border border-amber-500/60 text-amber-200 text-[11px] space-y-1.5">
+                    <div class="font-extrabold flex items-center gap-1.5 text-amber-300">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Fenêtre d'aperçu détectée (USB direct restreint)
+                    </div>
+                    <p class="text-[10px] text-amber-100/90 leading-snug">
+                        Pour autoriser la fenêtre de sélection du câble <strong>FT232R USB UART</strong> directement dans le navigateur, ouvrez l'application dans un onglet complet ou utilisez le Pont Windows ci-dessous :
+                    </p>
+                    <button onclick="openStandaloneWindow()" class="w-full py-1.5 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                        <i class="fa-solid fa-up-right-from-square"></i> Ouvrir dans un onglet avec accès USB total
+                    </button>
+                </div>
+
+                <!-- TABLEAU DE CONTRÔLE VISUEL : ÉTAT RÉEL DE LA CONNEXION (STYLE SW MAPS) -->
                 <div id="connection-status-card" class="rounded-xl p-3 border-2 border-rose-500/60 bg-rose-950/30 space-y-2.5 transition">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <div id="status-main-icon" class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div id="status-main-icon" class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-sm shrink-0">
                                 <i class="fa-solid fa-plug-circle-xmark"></i>
                             </div>
-                            <div>
-                                <div id="status-main-title" class="text-xs font-extrabold uppercase tracking-wide text-rose-300">
-                                    ANTENNE NON CONNECTÉE (MODE SIMULATION)
+                            <div class="min-w-0">
+                                <div id="status-main-title" class="text-xs font-extrabold uppercase tracking-wide text-rose-300 truncate">
+                                    ANTENNE NON CONNECTÉE (SIMULATION)
                                 </div>
-                                <div id="status-main-sub" class="text-[11px] text-slate-300">
-                                    Vous déplacez actuellement un point fictif. Branchez l'antenne ci-dessous.
+                                <div id="status-main-sub" class="text-[11px] text-slate-300 truncate">
+                                    Choisissez l'un des 3 modes de connexion ci-dessous.
                                 </div>
                             </div>
                         </div>
-                        <span id="bridge-status-pill" class="hidden text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono-tech">Pont: Inactif</span>
+                        <span id="bridge-status-pill" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono-tech shrink-0">Port: Aucun</span>
                     </div>
 
-                    <!-- 3 Voyants simples -->
-                    <div class="grid grid-cols-3 gap-1.5 pt-1">
-                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 text-center">
-                            <div class="text-[9px] text-slate-400 uppercase font-bold">1. Antenne USB</div>
-                            <div id="diag-antenna" class="text-xs font-extrabold text-rose-400 mt-0.5">Débranchée</div>
+                    <!-- 4 Indicateurs temps réel (Comme dans "GNSS Status" de SW Maps) -->
+                    <div class="grid grid-cols-4 gap-1.5 pt-1">
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-1.5 text-center">
+                            <div class="text-[9px] text-slate-400 uppercase font-bold">Antenne</div>
+                            <div id="diag-antenna" class="text-[11px] font-extrabold text-rose-400 mt-0.5 truncate">Débranchée</div>
                         </div>
-                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 text-center">
-                            <div class="text-[9px] text-slate-400 uppercase font-bold">2. Réseau Centipede</div>
-                            <div id="diag-centipede" class="text-xs font-extrabold text-slate-400 mt-0.5">En attente</div>
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-1.5 text-center">
+                            <div class="text-[9px] text-slate-400 uppercase font-bold">Solution</div>
+                            <div id="diag-fix-type" class="text-[11px] font-extrabold text-amber-400 mt-0.5 truncate">Simu</div>
                         </div>
-                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2 text-center">
-                            <div class="text-[9px] text-slate-400 uppercase font-bold">3. Signal Reçu</div>
-                            <div id="diag-signal-age" class="text-xs font-mono-tech font-extrabold text-amber-400 mt-0.5">Simulation</div>
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-1.5 text-center">
+                            <div class="text-[9px] text-slate-400 uppercase font-bold">Centipede</div>
+                            <div id="diag-centipede" class="text-[11px] font-extrabold text-slate-400 mt-0.5 truncate">Attente</div>
                         </div>
+                        <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-1.5 text-center">
+                            <div class="text-[9px] text-slate-400 uppercase font-bold">Trames</div>
+                            <div id="diag-signal-age" class="text-[11px] font-mono-tech font-extrabold text-amber-400 mt-0.5 truncate">0 reçue</div>
+                        </div>
+                    </div>
+
+                    <!-- Moniteur de trame NMEA en direct (visible immédiatement) -->
+                    <div class="bg-slate-950/90 border border-slate-800 rounded-lg px-2.5 py-1.5 font-mono-tech text-[10px] flex items-center justify-between gap-2">
+                        <span id="nmea-live-line" class="text-slate-400 truncate">Aucune trame $GNGGA reçue de l'antenne...</span>
+                        <span id="nmea-byte-counter" class="text-amber-400 shrink-0 font-bold">0 octets</span>
                     </div>
                 </div>
 
-                <!-- ÉTAPE A : CHOISIR LA BASE CENTIPEDE LA PLUS PROCHE -->
-                <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3 space-y-2">
+                <!-- CONFIGURATION INSTRUMENT & BASE CENTIPEDE (COMME SUR SW MAPS) -->
+                <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3 space-y-2.5">
                     <div class="flex items-center justify-between">
-                        <label class="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
-                            <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center justify-center">1</span>
-                            Base Centipede RTK à utiliser :
-                        </label>
-                        <button onclick="findNearestCentipedeBase()" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold transition">
-                            <i class="fa-solid fa-location-crosshairs mr-1"></i>Choisir la + proche auto
+                        <span class="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders"></i> Réglages Antenne & NTRIP Centipede (Style SW Maps)
+                        </span>
+                        <button onclick="findNearestCentipedeBase()" class="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold transition">
+                            <i class="fa-solid fa-location-crosshairs mr-1"></i>Base + proche
                         </button>
                     </div>
 
                     <div class="grid grid-cols-12 gap-2">
-                        <div class="col-span-8">
-                            <select id="ntrip-mount-select" onchange="onSelectCentipedeBase(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs font-mono-tech text-white font-bold">
-                                <option value="BOVES">BOVES — Boves / Somme (80)</option>
-                                <option value="AMIENS">AMIENS — Amiens (80)</option>
-                                <option value="ESTREES">ESTREES — Estrées-Mons (80)</option>
-                                <option value="ABBEVILLE">ABBEVILLE — Abbeville (80)</option>
-                                <option value="BEAUVAIS">BEAUVAIS — Beauvais (60)</option>
-                                <option value="COMPIEGNE">COMPIEGNE — Compiègne (60)</option>
-                                <option value="ARRAS">ARRAS — Arras (62)</option>
-                                <option value="LILLE">LILLE — Lille (59)</option>
-                                <option value="REIMS">REIMS — Reims (51)</option>
-                                <option value="ROUEN">ROUEN — Rouen (76)</option>
+                        <div class="col-span-6">
+                            <label class="text-[10px] text-slate-300 font-bold block mb-0.5">Vitesse Port FT232R (Bauds)</label>
+                            <select id="serial-baud" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono-tech text-white font-bold">
+                                <option value="AUTO" selected>AUTO-SCAN (38400 / 115200...)</option>
+                                <option value="38400">38400 bauds (Défaut FT232R UART2)</option>
+                                <option value="115200">115200 bauds (u-blox F9P USB)</option>
+                                <option value="57600">57600 bauds</option>
+                                <option value="9600">9600 bauds</option>
                             </select>
                         </div>
-                        <div class="col-span-4">
-                            <input id="ntrip-mount" type="text" value="BOVES" title="Code de la base Centipede" placeholder="Code base" class="w-full bg-slate-900 border border-emerald-500/50 rounded-lg px-2.5 py-2 text-xs font-mono-tech text-emerald-300 font-bold uppercase text-center">
+                        <div class="col-span-6">
+                            <label class="text-[10px] text-slate-300 font-bold block mb-0.5">Base Centipede (Point de montage)</label>
+                            <div class="flex gap-1">
+                                <select id="ntrip-mount-select" onchange="onSelectCentipedeBase(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1.5 text-xs font-mono-tech text-white font-bold">
+                                    <option value="BOVES">BOVES (80)</option>
+                                    <option value="AMIENS">AMIENS (80)</option>
+                                    <option value="ESTREES">ESTREES (80)</option>
+                                    <option value="ABBEVILLE">ABBEVILLE (80)</option>
+                                    <option value="BEAUVAIS">BEAUVAIS (60)</option>
+                                    <option value="COMPIEGNE">COMPIEGNE (60)</option>
+                                    <option value="ARRAS">ARRAS (62)</option>
+                                    <option value="LILLE">LILLE (59)</option>
+                                    <option value="REIMS">REIMS (51)</option>
+                                    <option value="ROUEN">ROUEN (76)</option>
+                                </select>
+                                <input id="ntrip-mount" type="text" value="BOVES" class="w-20 bg-slate-900 border border-emerald-500/50 rounded-lg px-1.5 py-1.5 text-xs font-mono-tech text-emerald-300 font-bold uppercase text-center" title="Code manuel de la base Centipede">
+                            </div>
                         </div>
                     </div>
+                    <input id="ntrip-host" type="hidden" value="caster.centipede.fr">
+                    <input id="ntrip-port" type="hidden" value="2101">
+                    <input id="ntrip-user" type="hidden" value="centipede">
                 </div>
 
-                <!-- ÉTAPE B : BRANCHER L'ANTENNE (MÉTHODES SIMPLIFIÉES) -->
-                <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3 space-y-2.5">
-                    <div class="text-xs font-extrabold text-sky-400 flex items-center gap-1.5">
-                        <span class="w-5 h-5 rounded-full bg-sky-500 text-slate-950 font-black text-[11px] flex items-center justify-center">2</span>
-                        Connecter votre antenne GPS :
-                    </div>
+                <!-- ============================================================= -->
+                <!-- LES 3 MODES DE CONNEXION (COMME SUR SW MAPS)                  -->
+                <!-- ============================================================= -->
+                <div class="space-y-2.5">
 
-                    <!-- OPTION 1 : PC WINDOWS AVEC CÂBLE USB FT232R + CENTIPEDE AUTOMATIQUE -->
-                    <div class="bg-blue-950/40 border border-blue-500/40 rounded-xl p-2.5 space-y-2">
+                    <!-- MODE 1 : RELAIS DEPUIS L'APPLICATION SW MAPS (ANDROID / TABLETTE) -->
+                    <div class="bg-emerald-950/35 border border-emerald-500/50 rounded-xl p-3 space-y-2">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                                <i class="fa-brands fa-windows text-blue-400"></i> Sur PC Windows (Antenne USB + Centipede 1 cm)
+                            <span class="text-xs font-extrabold text-emerald-300 flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center justify-center">A</span>
+                                Si vous utilisez déjà l'appli SW Maps (Tablette / Android)
                             </span>
-                            <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-semibold">Recommandé</span>
+                            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Le + simple sur Android</span>
                         </div>
                         <p class="text-[11px] text-slate-300 leading-snug">
-                            Cliquez sur le bouton ci-dessous et <strong>ouvrez le petit fichier téléchargé</strong> : la page détectera automatiquement votre antenne et passera au <strong>Vert</strong>.
+                            Dans <strong>SW Maps</strong>, connectez votre antenne <code class="text-emerald-300">FT232R</code> et le NTRIP Centipede, cochez <strong>« Activer la position fictive (Mock Location) »</strong> dans SW Maps, puis cliquez ici :
                         </p>
-                        <button onclick="downloadWindowsCentipedeBridge()" class="w-full py-2.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
-                            <i class="fa-solid fa-bolt"></i> Lancer la connexion automatique USB + Centipede
+                        <button onclick="connectOSGeolocation()" class="w-full py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                            <i class="fa-solid fa-satellite"></i> Recevoir la position RTK depuis SW Maps (GPS Système)
                         </button>
                     </div>
 
-                    <!-- OPTION 2 : CONNEXION DIRECTE OU TABLETTE -->
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="connectDirectUSBAuto()" class="py-2.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-600 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 transition">
-                            <i class="fa-brands fa-usb text-amber-400 text-base"></i>
-                            <span>Port USB Direct</span>
-                            <span class="text-[9px] text-slate-400 font-normal">Sans Centipede intégré</span>
-                        </button>
-                        <button onclick="connectOSGeolocation()" class="py-2.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-600 text-white font-bold text-xs flex flex-col items-center justify-center gap-1 transition">
-                            <i class="fa-solid fa-tablet-screen-button text-emerald-400 text-base"></i>
-                            <span>GPS Tablette / Android</span>
-                            <span class="text-[9px] text-slate-400 font-normal">SW Maps / Lefebure</span>
+                    <!-- MODE 2 : CONNEXION USB DIRECTE (PILOTE FT232R USB UART COMME SW MAPS) -->
+                    <div class="bg-sky-950/35 border border-sky-500/50 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-sky-300 flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-sky-500 text-slate-950 font-black text-[11px] flex items-center justify-center">B</span>
+                                Connexion Câble USB Directe (FT232R USB UART / Port COM)
+                            </span>
+                            <span class="text-[9px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded font-bold">Fermez SW Maps avant</span>
+                        </div>
+                        <p class="text-[10px] text-slate-300 leading-snug">
+                            ⚠️ <em>Fermez SW Maps ou u-center pour libérer le câble USB.</em> Scan automatique des vitesses <code class="text-sky-300">38400</code> et <code class="text-sky-300">115200</code> bauds :
+                        </p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="connectWebSerialPort()" class="py-2 px-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                                <i class="fa-solid fa-plug"></i> 1. Port COM (PC Chrome/Edge)
+                            </button>
+                            <button onclick="connectWebUSB_FT232R()" class="py-2 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                                <i class="fa-brands fa-usb"></i> 2. Pilote FT232R (USB OTG)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- MODE 3 : PC WINDOWS (PONT AUTOMATIQUE FT232R + CENTIPEDE 1 CM) -->
+                    <div class="bg-blue-950/35 border border-blue-500/40 rounded-xl p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-blue-300 flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-blue-500 text-slate-950 font-black text-[11px] flex items-center justify-center">C</span>
+                                Sur PC Windows : Pont Auto FT232R + Centipede RTK
+                            </span>
+                            <span class="text-[9px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">Contourne tout blocage</span>
+                        </div>
+                        <p class="text-[10px] text-slate-300 leading-snug">
+                            Si le navigateur bloque l'USB ou le serveur Centipede : téléchargez et ouvrez ce connecteur Windows qui scanne les vitesses (<code class="text-blue-300">38400/115200</code>) de votre <strong>FT232R USB UART</strong> et injecte les corrections Centipede :
+                        </p>
+                        <button onclick="downloadWindowsCentipedeBridge()" class="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow transition">
+                            <i class="fa-brands fa-windows"></i> Télécharger & Lancer le Pont Auto Windows (.BAT)
                         </button>
                     </div>
 
-                    <!-- OPTION 3 : SIMULATION BUREAU -->
-                    <div class="flex items-center justify-between pt-1 border-t border-slate-700/70">
-                        <span class="text-[11px] text-slate-400">Préparation au bureau sans antenne :</span>
+                    <!-- MODE SIMULATION BUREAU -->
+                    <div class="flex items-center justify-between pt-1 px-1">
+                        <span class="text-[11px] text-slate-400">Tester au bureau sans antenne :</span>
                         <button onclick="enableSimulationMode()" class="px-3 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-200 font-bold text-[11px] flex items-center gap-1.5 transition">
-                            <i class="fa-solid fa-gamepad"></i> Activer Simu Bureau
+                            <i class="fa-solid fa-gamepad"></i> Mode Simulation
                         </button>
                     </div>
                 </div>
-
-                <!-- PARAMÈTRES TECHNIQUES AVANCÉS (MASQUÉS PAR DÉFAUT POUR NE PAS COMPLEXIFIER) -->
-                <details class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 text-xs">
-                    <summary class="cursor-pointer font-bold text-slate-400 hover:text-slate-200 select-none flex items-center justify-between">
-                        <span><i class="fa-solid fa-gear mr-1.5"></i>Paramètres techniques avancés & Trame NMEA</span>
-                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                    </summary>
-                    <div class="mt-2.5 space-y-2 pt-2 border-t border-slate-800">
-                        <div class="grid grid-cols-12 gap-2">
-                            <div class="col-span-5">
-                                <label class="text-[10px] text-slate-400 block mb-0.5">Serveur Caster</label>
-                                <input id="ntrip-host" type="text" value="caster.centipede.fr" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono-tech text-white">
-                            </div>
-                            <div class="col-span-3">
-                                <label class="text-[10px] text-slate-400 block mb-0.5">Port</label>
-                                <input id="ntrip-port" type="number" value="2101" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[11px] font-mono-tech text-white">
-                            </div>
-                            <div class="col-span-4">
-                                <label class="text-[10px] text-slate-400 block mb-0.5">Vitesse USB (Bauds)</label>
-                                <select id="serial-baud" class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-[11px] font-mono-tech text-white">
-                                    <option value="115200" selected>115200 bauds</option>
-                                    <option value="38400">38400 bauds</option>
-                                    <option value="57600">57600 bauds</option>
-                                    <option value="9600">9600 bauds</option>
-                                </select>
-                            </div>
-                        </div>
-                        <input id="ntrip-user" type="hidden" value="centipede">
-                        <div class="flex gap-1.5 pt-1">
-                            <button onclick="openStandaloneWindow()" class="px-2 py-1 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold">
-                                <i class="fa-solid fa-up-right-from-square mr-1"></i>Ouvrir dans un onglet débloqué
-                            </button>
-                            <button onclick="connectWebUSB_FT232R()" class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px]">
-                                Forcer WebUSB FTDI
-                            </button>
-                        </div>
-                        <div class="bg-slate-900 rounded p-2 font-mono-tech text-[10px] space-y-1">
-                            <div class="flex items-center justify-between text-slate-400">
-                                <span>Trame GPS reçue :</span>
-                                <span id="nmea-byte-counter" class="text-amber-400">Aucune trame réelle (Simulation)</span>
-                            </div>
-                            <div id="nmea-live-line" class="text-slate-300 truncate">En attente de l'antenne...</div>
-                        </div>
-                    </div>
-                </details>
 
                 <button onclick="switchStep(2)" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition">
                     Passer à l'Étape 2 : Ligne A-B & Plateforme <i class="fa-solid fa-arrow-right"></i>
@@ -967,6 +982,8 @@
             mapOnlyMode: false,
             pureMapMode: false,
             lastRealPacketTime: 0,
+            nmeaPacketsCount: 0,
+            activeBaudRate: 0,
             // Ports matériels navigateur
             serialPort: null,
             usbDevice: null,
@@ -1046,8 +1063,10 @@
             const title = document.getElementById('status-main-title');
             const sub = document.getElementById('status-main-sub');
             const diagAnt = document.getElementById('diag-antenna');
+            const diagFix = document.getElementById('diag-fix-type');
             const diagCent = document.getElementById('diag-centipede');
             const diagSig = document.getElementById('diag-signal-age');
+            const pillPort = document.getElementById('bridge-status-pill');
 
             const headerAntBadge = document.getElementById('header-antenna-badge');
             const headerAntDot = document.getElementById('antenna-dot');
@@ -1057,33 +1076,47 @@
             if (isReceivingLive) {
                 // ANTENNE BIEN CONNECTÉE EN TEMPS RÉEL
                 if (simDpad) simDpad.classList.add('hidden');
-                const srcName = state.rover.source === 'bridge' ? 'USB FT232R + Pont' :
-                                state.rover.source === 'webserial' ? 'USB Port COM' :
-                                state.rover.source === 'webusb' ? 'USB Direct FT232R' : 'GPS Appareil';
+                const srcName = state.rover.source === 'bridge' ? `Pont USB (${state.bridge.comPort || 'FT232R'})` :
+                                state.rover.source === 'webserial' ? `Port COM (${state.activeBaudRate || ''} bd)` :
+                                state.rover.source === 'webusb' ? `FT232R USB (${state.activeBaudRate || ''} bd)` : 'SW Maps / GPS OS';
 
                 card.className = 'rounded-xl p-3 border-2 border-emerald-500 bg-emerald-950/30 space-y-2.5 transition';
-                icon.className = 'w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 text-sm';
+                icon.className = 'w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 text-sm shrink-0';
                 icon.innerHTML = '<i class="fa-solid fa-check-circle"></i>';
-                title.className = 'text-xs font-extrabold uppercase tracking-wide text-emerald-300';
-                title.textContent = `ANTENNE CONNECTÉE (${srcName})`;
-                sub.textContent = `Position GPS reçue en direct • Précision actuelle : ${state.rover.accuracyCm.toFixed(1)} cm (${state.rover.fixLabel})`;
+                title.className = 'text-xs font-extrabold uppercase tracking-wide text-emerald-300 truncate';
+                title.textContent = `ANTENNE CONNECTÉE : ${srcName}`;
+                sub.textContent = `Position reçue en direct • Précision : ${state.rover.accuracyCm.toFixed(1)} cm • Satellites : ${state.rover.sats}`;
 
-                diagAnt.textContent = 'Connectée (OK)';
-                diagAnt.className = 'text-xs font-extrabold text-emerald-400 mt-0.5';
-
-                if (state.bridge.connected) {
-                    diagCent.textContent = `Actif (${state.ntrip.mount})`;
-                    diagCent.className = 'text-xs font-extrabold text-emerald-400 mt-0.5';
-                } else if (state.rover.fixQuality === 4 || state.rover.fixQuality === 5) {
-                    diagCent.textContent = 'Correction RTK OK';
-                    diagCent.className = 'text-xs font-extrabold text-emerald-400 mt-0.5';
-                } else {
-                    diagCent.textContent = 'Non relié';
-                    diagCent.className = 'text-xs font-extrabold text-amber-400 mt-0.5';
+                if (pillPort) {
+                    pillPort.textContent = srcName;
+                    pillPort.className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono-tech shrink-0';
                 }
 
-                diagSig.textContent = `Il y a ${ageSec.toFixed(1)}s`;
-                diagSig.className = 'text-xs font-mono-tech font-extrabold text-emerald-400 mt-0.5';
+                diagAnt.textContent = 'Connectée';
+                diagAnt.className = 'text-[11px] font-extrabold text-emerald-400 mt-0.5 truncate';
+
+                if (diagFix) {
+                    diagFix.textContent = state.rover.fixQuality === 4 ? 'RTK FIX 1cm' :
+                                          state.rover.fixQuality === 5 ? 'RTK FLOAT' :
+                                          state.rover.fixQuality === 2 ? 'DGPS' : 'GPS Simple';
+                    diagFix.className = state.rover.fixQuality === 4
+                        ? 'text-[11px] font-extrabold text-emerald-400 mt-0.5 truncate'
+                        : 'text-[11px] font-extrabold text-amber-400 mt-0.5 truncate';
+                }
+
+                if (state.bridge.connected || state.ntrip.rtcmBytesReceived > 0) {
+                    diagCent.textContent = `${state.ntrip.mount} OK`;
+                    diagCent.className = 'text-[11px] font-extrabold text-emerald-400 mt-0.5 truncate';
+                } else if (state.rover.fixQuality === 4 || state.rover.fixQuality === 5) {
+                    diagCent.textContent = 'RTK Actif';
+                    diagCent.className = 'text-[11px] font-extrabold text-emerald-400 mt-0.5 truncate';
+                } else {
+                    diagCent.textContent = 'Sans RTCM';
+                    diagCent.className = 'text-[11px] font-extrabold text-amber-400 mt-0.5 truncate';
+                }
+
+                diagSig.textContent = `${state.nmeaPacketsCount} (${ageSec.toFixed(1)}s)`;
+                diagSig.className = 'text-[11px] font-mono-tech font-extrabold text-emerald-400 mt-0.5 truncate';
 
                 headerAntBadge.className = 'px-2.5 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500 text-emerald-200 text-xs font-extrabold flex items-center gap-1.5 transition';
                 headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 rtk-pulse';
@@ -1092,18 +1125,22 @@
                 // MODE SIMULATION OU AUCUN SIGNAL
                 if (simDpad) simDpad.classList.remove('hidden');
                 card.className = 'rounded-xl p-3 border-2 border-rose-500/60 bg-rose-950/30 space-y-2.5 transition';
-                icon.className = 'w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-sm';
+                icon.className = 'w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 text-sm shrink-0';
                 icon.innerHTML = '<i class="fa-solid fa-plug-circle-xmark"></i>';
-                title.className = 'text-xs font-extrabold uppercase tracking-wide text-rose-300';
-                title.textContent = 'ANTENNE NON CONNECTÉE (MODE SIMULATION)';
-                sub.textContent = 'Vous êtes en mode simulation. Utilisez le bouton bleu ci-dessous pour brancher l\'antenne.';
+                title.className = 'text-xs font-extrabold uppercase tracking-wide text-rose-300 truncate';
+                title.textContent = 'ANTENNE NON CONNECTÉE (SIMULATION)';
+                sub.textContent = 'Choisissez l\'un des 3 modes (A: SW Maps, B: USB Direct, C: Pont Windows).';
 
-                diagAnt.textContent = 'Non connectée';
-                diagAnt.className = 'text-xs font-extrabold text-rose-400 mt-0.5';
-                diagCent.textContent = 'Déconnecté';
-                diagCent.className = 'text-xs font-extrabold text-slate-400 mt-0.5';
+                diagAnt.textContent = 'Débranchée';
+                diagAnt.className = 'text-[11px] font-extrabold text-rose-400 mt-0.5 truncate';
+                if (diagFix) {
+                    diagFix.textContent = 'Simulation';
+                    diagFix.className = 'text-[11px] font-extrabold text-amber-400 mt-0.5 truncate';
+                }
+                diagCent.textContent = 'En attente';
+                diagCent.className = 'text-[11px] font-extrabold text-slate-400 mt-0.5 truncate';
                 diagSig.textContent = 'Simulation';
-                diagSig.className = 'text-xs font-mono-tech font-extrabold text-amber-400 mt-0.5';
+                diagSig.className = 'text-[11px] font-mono-tech font-extrabold text-amber-400 mt-0.5 truncate';
 
                 headerAntBadge.className = 'px-2.5 py-1.5 rounded-lg bg-rose-950/80 border border-rose-500/60 text-rose-200 text-xs font-bold flex items-center gap-1.5 transition';
                 headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
@@ -1118,7 +1155,7 @@
             } else if (navigator.usb) {
                 await connectWebUSB_FT232R();
             } else {
-                showToast("Votre navigateur bloque l'USB direct : utilisez le bouton bleu Windows (.BAT) ci-dessus.", "amber");
+                showToast("Votre navigateur bloque l'USB direct : utilisez le Mode A (SW Maps) ou Mode C (.BAT Windows).", "amber");
             }
         }
 
@@ -2361,91 +2398,150 @@
             showToast(`Base Centipede la plus proche : ${best.mount} (à ${(bestDist / 1000).toFixed(1)} km)`, "emerald");
         }
 
-        // Génération du script .BAT Windows autonome (FT232R USB + Client NTRIP Centipede TCP)
+        // ============================================================================
+        // 10B. CONNEXION MULTI-BAUDS COMME SUR SW MAPS (38400 / 115200 / 57600 / 9600)
+        // ============================================================================
+
+        // Génération du script .BAT Windows autonome avec Auto-Scan des vitesses (38400 / 115200 bauds) + NTRIP Centipede
         function downloadWindowsCentipedeBridge() {
             const host = document.getElementById('ntrip-host').value.trim() || 'caster.centipede.fr';
             const port = parseInt(document.getElementById('ntrip-port').value, 10) || 2101;
             const mount = document.getElementById('ntrip-mount').value.trim().toUpperCase() || 'BOVES';
-            const baud = parseInt(document.getElementById('serial-baud').value, 10) || 115200;
+            const baudChoice = document.getElementById('serial-baud').value;
+            const baudList = (baudChoice === 'AUTO') ? '38400,115200,57600,9600' : baudChoice;
 
             const batContent = `@echo off
-title Pont AgroRTK - Antenne FT232R USB UART + Centipede RTK (${mount})
+title Pont AgroRTK (Style SW Maps) - Antenne FT232R USB UART + Centipede RTK (${mount})
 color 0A
-echo ============================================================================
-echo   PONT AUTOMATIQUE FT232R USB UART + CENTIPEDE RTK (${host}:${port}/${mount})
-echo ============================================================================
+echo ================================================================================
+echo   CONNEXION AUTOMATIQUE ANTENNE FT232R USB UART + CENTIPEDE RTK (${mount})
+echo   IMPORTANT : Fermez SW Maps / u-center / QGNSS pour liberer le port USB !
+echo ================================================================================
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$baud = ${baud}; $caster = '${host}'; $port = ${port}; $mount = '${mount}';" ^
+  "$caster = '${host}'; $port = ${port}; $mount = '${mount}'; $bauds = @(${baudList});" ^
+  "Write-Host '1. Recherche de votre antenne FT232R USB UART / u-blox...' -ForegroundColor Cyan;" ^
+  "$pnp = Get-CimInstance Win32_PnPEntity | Where-Object { $_.Name -match 'COM\\d+|FT232|FTDI|u-blox|USB Serial|CH340|CP210' };" ^
+  "if ($pnp) { $pnp | ForEach-Object { Write-Host ('   Peripherique detecte : ' + $_.Name + ' [' + $_.Status + ']') -ForegroundColor Yellow } };" ^
   "$ports = [System.IO.Ports.SerialPort]::GetPortNames();" ^
-  "if ($ports.Count -eq 0) { Write-Host 'Aucun port COM detecte. Verifiez que votre antenne FT232R USB UART est branchee.' -ForegroundColor Red; Read-Host 'Entree pour quitter'; exit };" ^
-  "$com = $ports[-1]; Write-Host ('Ouverture Antenne FT232R sur ' + $com + ' a ' + $baud + ' bauds...') -ForegroundColor Cyan;" ^
-  "$sp = New-Object System.IO.Ports.SerialPort $com, $baud, 'None', 8, 'One'; $sp.Open();" ^
-  "$lastGga = '$GNGGA,120000.00,4950.5920,N,00223.1960,E,1,12,0.8,68.0,M,47.0,M,,*64';" ^
-  "$rtcmCount = 0;" ^
+  "if ($ports.Count -eq 0) {" ^
+  "  Write-Host 'ERREUR : Aucun port COM trouve par Windows !' -ForegroundColor Red;" ^
+  "  Write-Host 'Si vous voyez FT232R USB UART ci-dessus sans numero (COMx), allez dans Windows Update > Mises a jour facultatives > Pilotes > Cochez FTDI - Ports.' -ForegroundColor White;" ^
+  "  Read-Host 'Appuyez sur Entree pour quitter'; exit" ^
+  "};" ^
+  "$foundSp = $null; $foundCom = ''; $foundBaud = 0; $lastGga = '';" ^
+  "foreach ($c in ($ports | Sort-Object -Descending)) {" ^
+  "  foreach ($b in $bauds) {" ^
+  "    Write-Host ('Test de ' + $c + ' a ' + $b + ' bauds (comme SW Maps)...') -NoNewline;" ^
+  "    try {" ^
+  "      $sp = New-Object System.IO.Ports.SerialPort $c, $b, 'None', 8, 'One';" ^
+  "      $sp.DtrEnable = $true; $sp.RtsEnable = $true; $sp.ReadTimeout = 200; $sp.Open();" ^
+  "      Start-Sleep -Milliseconds 900;" ^
+  "      $chunk = $sp.ReadExisting();" ^
+  "      if ($chunk -match '\\$G[NP][A-Z]{3},') {" ^
+  "        Write-Host ' SIGNAL GPS NMEA DETECTE !' -ForegroundColor Green;" ^
+  "        $foundSp = $sp; $foundCom = $c; $foundBaud = $b; break;" ^
+  "      } else { Write-Host ' pas de trame NMEA.' -ForegroundColor DarkGray; $sp.Close(); }" ^
+  "    } catch { Write-Host ' occupe ou inaccessible.' -ForegroundColor Red }" ^
+  "  }" ^
+  "  if ($foundSp -ne $null) { break }" ^
+  "};" ^
+  "if ($foundSp -eq $null) {" ^
+  "  $foundCom = $ports[-1]; $foundBaud = $bauds[0];" ^
+  "  Write-Host ('Ouverture par defaut sur ' + $foundCom + ' a ' + $foundBaud + ' bauds...') -ForegroundColor Yellow;" ^
+  "  $foundSp = New-Object System.IO.Ports.SerialPort $foundCom, $foundBaud, 'None', 8, 'One';" ^
+  "  $foundSp.DtrEnable = $true; $foundSp.RtsEnable = $true; $foundSp.Open();" ^
+  "};" ^
+  "$stream = $null; $rtcmCount = 0;" ^
   "try {" ^
+  "  Write-Host ('2. Connexion NTRIP a ' + $caster + ':' + $port + '/' + $mount + '...') -ForegroundColor Cyan;" ^
   "  $tcp = New-Object System.Net.Sockets.TcpClient($caster, $port);" ^
   "  $stream = $tcp.GetStream();" ^
   "  $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes('centipede:centipede'));" ^
-  "  $req = \"GET /$mount HTTP/1.0\`r\`nHost: $caster\`r\`nUser-Agent: NTRIP AgroRTK/1.0\`r\`nAuthorization: Basic $auth\`r\`n\`r\`n\";" ^
+  "  $req = \"GET /$mount HTTP/1.0\`r\`nHost: $caster\`r\`nUser-Agent: NTRIP SWMapsAgroRTK/2.0\`r\`nAuthorization: Basic $auth\`r\`n\`r\`n\";" ^
   "  $reqBytes = [Text.Encoding]::ASCII.GetBytes($req); $stream.Write($reqBytes, 0, $reqBytes.Length);" ^
-  "  Write-Host ('Connecte au reseau Centipede RTK : ' + $mount) -ForegroundColor Green;" ^
-  "} catch { Write-Host 'Info: Mode NMEA seul (Caster non joignable)' -ForegroundColor Yellow };" ^
+  "  Write-Host ('CONNECTE AU RESEAU CENTIPEDE RTK : Base ' + $mount) -ForegroundColor Green;" ^
+  "} catch { Write-Host 'Attention : Caster Centipede non joignable (Mode GPS sans correction RTCM)' -ForegroundColor Yellow };" ^
   "$http = New-Object System.Net.HttpListener; $http.Prefixes.Add('http://127.0.0.1:8765/'); $http.Start();" ^
-  "Write-Host 'Pont Web actif sur http://127.0.0.1:8765/ -> Cliquez sur [2. Relier au Pont Local] dans la page web.' -ForegroundColor Green;" ^
-  "$buf = New-Object byte[] 2048;" ^
+  "Write-Host '================================================================================' -ForegroundColor Green;" ^
+  "Write-Host (' PONT ACTIF (' + $foundCom + ' @ ' + $foundBaud + ' bauds) -> Retournez sur la page Web AgroRTK !') -ForegroundColor Green;" ^
+  "Write-Host '================================================================================' -ForegroundColor Green;" ^
+  "$buf = New-Object byte[] 4096; $nmeaBuf = ''; $lastGgaSent = [DateTime]::MinValue;" ^
   "while ($true) {" ^
-  "  while ($sp.BytesToRead -gt 0) {" ^
-  "    $line = $sp.ReadLine();" ^
-  "    if ($line -match '^\\$G[NP]GGA') { $lastGga = $line.Trim(); }" ^
-  "  }" ^
-  "  if ($stream -ne $null -and $stream.DataAvailable) {" ^
-  "    $n = $stream.Read($buf, 0, $buf.Length);" ^
-  "    if ($n -gt 0) { $sp.Write($buf, 0, $n); $rtcmCount += $n; }" ^
-  "  }" ^
-  "  if ($http.IsListening) {" ^
-  "    $task = $http.GetContextAsync();" ^
-  "    if ($task.Wait(40)) {" ^
-  "      $ctx = $task.Result; $res = $ctx.Response;" ^
-  "      $res.Headers.Add('Access-Control-Allow-Origin', '*');" ^
-  "      $json = '{\"gga\":\"' + $lastGga + '\",\"rtcm\":' + $rtcmCount + ',\"mount\":\"' + $mount + '\"}';" ^
-  "      $b = [Text.Encoding]::UTF8.GetBytes($json);" ^
-  "      $res.OutputStream.Write($b, 0, $b.Length); $res.Close();" ^
+  "  try {" ^
+  "    $incoming = $foundSp.ReadExisting();" ^
+  "    if ($incoming.Length -gt 0) {" ^
+  "      $nmeaBuf += $incoming;" ^
+  "      $lines = $nmeaBuf -split \"\`r?\`n\";" ^
+  "      if ($lines.Count -gt 1) {" ^
+  "        $nmeaBuf = $lines[-1];" ^
+  "        for ($i = 0; $i -lt ($lines.Count - 1); $i++) {" ^
+  "          $ln = $lines[$i].Trim();" ^
+  "          if ($ln -match '^\\$G[NP](GGA|RMC|GNS)') {" ^
+  "            if ($ln -match '^\\$G[NP]GGA') { $lastGga = $ln } elseif ($lastGga -eq '') { $lastGga = $ln };" ^
+  "          }" ^
+  "        }" ^
+  "      }" ^
   "    }" ^
-  "  }" ^
+  "    if ($stream -ne $null) {" ^
+  "      if ($lastGga -match '^\\$G[NP]GGA' -and ([DateTime]::Now - $lastGgaSent).TotalSeconds -ge 5) {" ^
+  "        $ggaBytes = [Text.Encoding]::ASCII.GetBytes($lastGga + \"\`r\`n\");" ^
+  "        $stream.Write($ggaBytes, 0, $ggaBytes.Length); $lastGgaSent = [DateTime]::Now;" ^
+  "      }" ^
+  "      while ($stream.DataAvailable) {" ^
+  "        $n = $stream.Read($buf, 0, $buf.Length);" ^
+  "        if ($n -gt 0) { $foundSp.Write($buf, 0, $n); $rtcmCount += $n; }" ^
+  "      }" ^
+  "    }" ^
+  "    if ($http.IsListening) {" ^
+  "      $task = $http.GetContextAsync();" ^
+  "      if ($task.Wait(35)) {" ^
+  "        $ctx = $task.Result; $res = $ctx.Response;" ^
+  "        $res.Headers.Add('Access-Control-Allow-Origin', '*');" ^
+  "        $safeGga = $lastGga.Replace('\"', '');" ^
+  "        $json = '{\"gga\":\"' + $safeGga + '\",\"rtcm\":' + $rtcmCount + ',\"mount\":\"' + $mount + '\",\"com\":\"' + $foundCom + '\",\"baud\":' + $foundBaud + '}';" ^
+  "        $b = [Text.Encoding]::UTF8.GetBytes($json);" ^
+  "        $res.OutputStream.Write($b, 0, $b.Length); $res.Close();" ^
+  "      }" ^
+  "    }" ^
+  "  } catch { Start-Sleep -Milliseconds 50 }" ^
   "}"
 `;
             const blob = new Blob([batContent], { type: 'application/bat' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Connecteur_FT232R_Centipede_${mount}.bat`;
+            a.download = `SWMaps_Pont_FT232R_Centipede_${mount}.bat`;
             a.click();
             URL.revokeObjectURL(url);
-            // Lance automatiquement l'écoute en arrière-plan dès le téléchargement !
             connectLocalBridge(true);
-            showToast("Fichier téléchargé ! Ouvrez-le : la connexion se fera toute seule dès qu'il est lancé.", "emerald");
+            showToast("Fichier .BAT téléchargé ! Ouvrez-le : il scanne les vitesses (38400/115200 bauds) et relie Centipede.", "emerald");
         }
 
         function connectLocalBridge(silent = false) {
             if (state.bridge.pollTimer) clearInterval(state.bridge.pollTimer);
-            if (!silent) showToast("Recherche automatique de l'antenne sur le PC...", "sky");
+            if (!silent) showToast("Recherche du pont local FT232R sur 127.0.0.1:8765...", "sky");
 
             state.bridge.pollTimer = setInterval(async () => {
                 try {
                     const res = await fetch('http://127.0.0.1:8765/', { cache: 'no-store' });
                     const data = await res.json();
-                    if (data && data.gga) {
+                    if (data) {
                         const wasConnected = state.bridge.connected;
                         state.bridge.connected = true;
+                        state.bridge.comPort = data.com || 'USB';
+                        state.activeBaudRate = data.baud || 38400;
+                        state.ntrip.rtcmBytesReceived = data.rtcm || 0;
                         state.rover.source = 'bridge';
-                        state.lastRealPacketTime = Date.now();
-                        document.getElementById('bridge-status-pill').textContent = `Pont: Actif (${data.mount})`;
-                        document.getElementById('bridge-status-pill').className = 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono-tech';
-                        document.getElementById('centipede-header-text').textContent = `Centipede: ${data.mount} (OK)`;
+
+                        document.getElementById('centipede-header-text').textContent = `Centipede: ${data.mount} (${(state.ntrip.rtcmBytesReceived / 1024).toFixed(1)} Ko)`;
                         document.getElementById('centipede-dot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 rtk-pulse';
-                        parseNmeaLine(data.gga, true);
+
+                        if (data.gga && data.gga.length > 10) {
+                            state.lastRealPacketTime = Date.now();
+                            parseNmeaLine(data.gga, true);
+                        }
                         if (!wasConnected) {
-                            showToast(`Antenne connectée avec succès au réseau Centipede (${data.mount}) !`, "emerald");
+                            showToast(`Antenne détectée sur ${state.bridge.comPort} (${state.activeBaudRate} bauds) + Centipede ${data.mount} !`, "emerald");
                         }
                     }
                 } catch (e) {
@@ -2454,53 +2550,113 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             }, 400);
         }
 
-        // Connexion directe WebUSB FT232R (VID 0x0403 / PID 0x6001)
+        // Connexion directe WebUSB FT232R (Comme SW Maps sur Android OTG : VID 0x0403 FTDI / 0x1546 u-blox / 0x10C4 CP210x / 0x1A86 CH340)
         async function connectWebUSB_FT232R() {
             if (!navigator.usb) {
-                showToast("WebUSB non disponible ici. Utilisez Chrome/Edge ou le Pont Local .BAT.", "rose");
+                showToast("WebUSB non supporté sur ce navigateur. Utilisez Chrome ou le Mode A (SW Maps).", "rose");
                 return;
             }
             try {
+                // Filtres USB couvrant FT232R (0x0403), u-blox (0x1546), CP210x (0x10C4), CH340 (0x1A86)
                 const device = await navigator.usb.requestDevice({
-                    filters: [{ vendorId: 0x0403 }] // FTDI (FT232R = 0x6001)
+                    filters: [
+                        { vendorId: 0x0403 }, // FTDI FT232R USB UART
+                        { vendorId: 0x1546 }, // u-blox ZED-F9P direct
+                        { vendorId: 0x10C4 }, // Silicon Labs CP210x
+                        { vendorId: 0x1A86 }  // QinHeng CH340
+                    ]
                 });
                 await device.open();
                 if (device.configuration === null) await device.selectConfiguration(1);
                 await device.claimInterface(0);
 
-                // Configurer le débit en bauds FT232R (diviseur 3000000 / baud)
-                const baud = parseInt(document.getElementById('serial-baud').value, 10) || 115200;
-                const divisor = Math.round(3000000 / baud);
-                await device.controlTransferOut({
-                    requestType: 'vendor',
-                    recipient: 'device',
-                    request: 3, // FTDI_SIO_SET_BAUD_RATE
-                    value: divisor & 0xFFFF,
-                    index: (divisor >> 16) & 0xFFFF
-                });
-
                 state.usbDevice = device;
                 state.rover.source = 'webusb';
-                showToast(`Antenne FT232R USB UART connectée (${baud} bauds) !`, "emerald");
-                readWebUSBLoop(device);
+
+                // Si l'utilisateur a laissé "AUTO", on teste d'abord 38400 (défaut FT232R Ardusimple) puis 115200
+                const selBaud = document.getElementById('serial-baud').value;
+                const baudsToTry = (selBaud === 'AUTO') ? [38400, 115200, 57600, 9600] : [parseInt(selBaud, 10)];
+
+                showToast(`Câble ${device.productName || 'FT232R USB UART'} ouvert ! Scan de la vitesse...`, "sky");
+                readWebUSBAutoBaudLoop(device, baudsToTry);
             } catch (err) {
-                showToast("Sélection WebUSB annulée ou bloquée par l'aperçu (cliquez sur Débloquer USB).", "amber");
+                if (window.self !== window.top) {
+                    document.getElementById('iframe-usb-warning')?.classList.remove('hidden');
+                    showToast("L'aperçu bloque la popup USB : cliquez sur le bouton jaune « Ouvrir dans un onglet » en haut de l'Étape 1.", "amber");
+                } else {
+                    showToast("Impossible d'ouvrir le port USB (vérifiez que SW Maps ou u-center est bien fermé).", "rose");
+                }
             }
         }
 
-        async function readWebUSBLoop(device) {
+        async function configureFtdiChip(device, baud) {
+            // Séquence d'initialisation officielle FTDI FT232R (comme dans le driver USB de SW Maps)
+            // 1. Reset FTDI
+            await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0, value: 0, index: 0 });
+            // 2. Activer DTR + RTS (0x0303) pour réveiller l'UART du F9P
+            await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 1, value: 0x0303, index: 0 });
+            // 3. Flow control = None
+            await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 2, value: 0, index: 0 });
+            // 4. Data format = 8N1 (0x0008)
+            await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 4, value: 0x0008, index: 0 });
+            // 5. Baud rate divisor (Base clock 3 MHz)
+            const divisor = Math.round(3000000 / baud);
+            await device.controlTransferOut({
+                requestType: 'vendor',
+                recipient: 'device',
+                request: 3,
+                value: divisor & 0xFFFF,
+                index: (divisor >> 16) & 0xFFFF
+            });
+            state.activeBaudRate = baud;
+        }
+
+        async function readWebUSBAutoBaudLoop(device, baudsToTry) {
+            let baudIdx = 0;
+            await configureFtdiChip(device, baudsToTry[baudIdx]);
+            let lastBaudSwitch = Date.now();
+            let validNmeaFound = false;
             let textBuffer = '';
-            const decoder = new TextDecoder();
+            const decoder = new TextDecoder('utf-8', { fatal: false });
+
+            // Trouver dynamiquement l'endpoint IN (souvent 1 ou 2)
+            let epIn = 1;
+            try {
+                const eps = device.configuration.interfaces[0].alternate.endpoints;
+                const foundIn = eps.find(e => e.direction === 'in');
+                if (foundIn) epIn = foundIn.endpointNumber;
+            } catch (e) {}
+
             while (device && device.opened) {
                 try {
-                    const result = await device.transferIn(1, 64);
+                    const result = await device.transferIn(epIn, 64);
                     if (result.data && result.data.byteLength > 2) {
-                        // Les 2 premiers octets FTDI sont les octets de statut modem
-                        const payload = new Uint8Array(result.data.buffer, 2);
-                        textBuffer += decoder.decode(payload);
-                        const lines = textBuffer.split(/\r?\n/);
-                        textBuffer = lines.pop() || '';
-                        lines.forEach(l => parseNmeaLine(l.trim()));
+                        // Pour FTDI (0x0403), les 2 premiers octets sont le statut modem (0x01 0x60)
+                        const offset = (device.vendorId === 0x0403) ? 2 : 0;
+                        if (result.data.byteLength > offset) {
+                            const payload = new Uint8Array(result.data.buffer, offset);
+                            textBuffer += decoder.decode(payload, { stream: true });
+                            const lines = textBuffer.split(/\r?\n/);
+                            textBuffer = lines.pop() || '';
+                            for (const rawLine of lines) {
+                                const clean = rawLine.trim();
+                                if (clean.includes('$GN') || clean.includes('$GP')) {
+                                    if (!validNmeaFound) {
+                                        validNmeaFound = true;
+                                        showToast(`Trames NMEA reçues de l'antenne à ${state.activeBaudRate} bauds !`, "emerald");
+                                    }
+                                    parseNmeaLine(clean, true);
+                                }
+                            }
+                        }
+                    }
+                    // Si aucune trame NMEA valide après 2.2 secondes et qu'on est en AUTO-SCAN, on teste la vitesse suivante
+                    if (!validNmeaFound && baudsToTry.length > 1 && (Date.now() - lastBaudSwitch > 2200)) {
+                        baudIdx = (baudIdx + 1) % baudsToTry.length;
+                        lastBaudSwitch = Date.now();
+                        textBuffer = '';
+                        await configureFtdiChip(device, baudsToTry[baudIdx]);
+                        document.getElementById('nmea-live-line').textContent = `Scan vitesse FT232R : test à ${state.activeBaudRate} bauds...`;
                     }
                 } catch (e) {
                     break;
@@ -2508,57 +2664,124 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             }
         }
 
-        // Connexion Port Série WebSerial
+        // Connexion Port Série WebSerial avec Auto-Scan (38400 / 115200 bauds)
         async function connectWebSerialPort() {
             if (!navigator.serial) {
-                showToast("WebSerial non supporté. Cliquez sur « Débloquer USB » ou utilisez le .BAT.", "rose");
+                if (navigator.usb) {
+                    await connectWebUSB_FT232R();
+                    return;
+                }
+                showToast("WebSerial non supporté ici : utilisez le Mode A (SW Maps) ou le Mode C (.BAT Windows).", "rose");
                 return;
             }
             try {
+                if (state.serialPort) {
+                    try { await state.serialPort.close(); } catch (e) {}
+                }
                 const port = await navigator.serial.requestPort();
-                const baudRate = parseInt(document.getElementById('serial-baud').value, 10) || 115200;
-                await port.open({ baudRate });
+                const selBaud = document.getElementById('serial-baud').value;
+                const baudsToTry = (selBaud === 'AUTO') ? [38400, 115200, 57600, 9600] : [parseInt(selBaud, 10)];
+
                 state.serialPort = port;
                 state.rover.source = 'webserial';
-                showToast(`Port Série ouvert à ${baudRate} bauds !`, "emerald");
 
-                const decoder = new TextDecoderStream();
-                port.readable.pipeTo(decoder.writable);
-                const reader = decoder.readable.getReader();
-                let buffer = '';
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    buffer += value;
-                    const lines = buffer.split(/\r?\n/);
-                    buffer = lines.pop() || '';
-                    lines.forEach(line => parseNmeaLine(line.trim()));
+                for (const baudRate of baudsToTry) {
+                    try {
+                        await port.open({ baudRate });
+                        // Activer DTR et RTS comme le fait SW Maps
+                        try { await port.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (e) {}
+                        state.activeBaudRate = baudRate;
+                        document.getElementById('nmea-live-line').textContent = `Test du port COM à ${baudRate} bauds...`;
+
+                        const gotNmea = await readSerialAtBaud(port, baudsToTry.length > 1 ? 2200 : 0);
+                        if (gotNmea) break;
+                        await port.close();
+                    } catch (e) {
+                        try { await port.close(); } catch (err) {}
+                    }
                 }
             } catch (err) {
-                showToast("Ouverture du port COM annulée ou bloquée par l'aperçu.", "amber");
+                if (window.self !== window.top) {
+                    document.getElementById('iframe-usb-warning')?.classList.remove('hidden');
+                    showToast("L'aperçu bloque la fenêtre Port COM : cliquez sur le bouton jaune « Ouvrir dans un onglet ».", "amber");
+                } else {
+                    showToast("Sélection du port COM annulée ou port occupé par un autre logiciel (fermez SW Maps / u-center).", "amber");
+                }
             }
         }
 
-        // Connexion GPS Externe OS / Android Mock Location
+        async function readSerialAtBaud(port, timeoutMs) {
+            const reader = port.readable.getReader();
+            const decoder = new TextDecoder('utf-8', { fatal: false });
+            let buffer = '';
+            let validFound = false;
+            const startTime = Date.now();
+
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split(/\r?\n/);
+                        buffer = lines.pop() || '';
+                        for (const rawLine of lines) {
+                            const idx = rawLine.indexOf('$G');
+                            if (idx >= 0) {
+                                const clean = rawLine.slice(idx).trim();
+                                if (!validFound) {
+                                    validFound = true;
+                                    showToast(`Antenne connectée sur Port COM (${state.activeBaudRate} bauds) !`, "emerald");
+                                }
+                                parseNmeaLine(clean, true);
+                            }
+                        }
+                    }
+                    if (!validFound && timeoutMs > 0 && (Date.now() - startTime > timeoutMs)) {
+                        reader.releaseLock();
+                        return false;
+                    }
+                }
+            } catch (e) {
+            } finally {
+                try { reader.releaseLock(); } catch (e) {}
+            }
+            return validFound;
+        }
+
+        // Connexion GPS Externe OS / Relais SW Maps "Mock Location"
         function connectOSGeolocation() {
             if (!navigator.geolocation) {
-                showToast("Géolocalisation OS non disponible.", "rose");
+                showToast("Géolocalisation système non disponible sur ce navigateur.", "rose");
                 return;
             }
             if (state.osWatchId !== null) navigator.geolocation.clearWatch(state.osWatchId);
             state.rover.source = 'os';
+            showToast("Écoute de la position SW Maps (GPS Système haute précision)...", "sky");
+
             state.osWatchId = navigator.geolocation.watchPosition(
                 (pos) => {
                     state.lastRealPacketTime = Date.now();
-                    const accCm = (pos.coords.accuracy || 0.02) * 100;
-                    updateRoverPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.altitude || 68, accCm <= 5 ? 4 : 2, 16, 0.7, accCm);
+                    state.nmeaPacketsCount++;
+                    const accCm = Math.max(1.0, (pos.coords.accuracy || 0.015) * 100);
+                    const fixQ = accCm <= 5.0 ? 4 : (accCm <= 30.0 ? 5 : (accCm <= 100.0 ? 2 : 1));
+                    document.getElementById('nmea-live-line').textContent = `SW Maps / OS GPS : Lat=${pos.coords.latitude.toFixed(7)}, Lon=${pos.coords.longitude.toFixed(7)} (±${accCm.toFixed(1)}cm)`;
+                    document.getElementById('nmea-byte-counter').textContent = `Trame #${state.nmeaPacketsCount}`;
+                    updateRoverPosition(
+                        pos.coords.latitude,
+                        pos.coords.longitude,
+                        pos.coords.altitude || 68.0,
+                        fixQ,
+                        18,
+                        0.6,
+                        accCm
+                    );
                 },
                 (err) => {
-                    showToast("Autorisez la localisation GPS dans votre navigateur.", "rose");
+                    showToast("Autorisez l'accès à la localisation dans votre navigateur (et activez Mock Location dans SW Maps).", "rose");
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
             );
-            showToast("Réception GPS Externe (OS / Tablette) activée !", "emerald");
         }
 
         function enableSimulationMode() {
@@ -2569,38 +2792,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             showToast("Mode Simulation activé (déplacez l'antenne avec les flèches ou en cliquant sur la carte).", "sky");
         }
 
-        // Décodeur de trames NMEA ($GNGGA / $GPGGA)
-        function parseNmeaLine(line, fromRealHardware = true) {
-            if (!line || (!line.startsWith('$GNGGA') && !line.startsWith('$GPGGA'))) return;
-            if (fromRealHardware) state.lastRealPacketTime = Date.now();
-            document.getElementById('nmea-live-line').textContent = line;
-            document.getElementById('nmea-byte-counter').textContent = `Signal direct OK (${new Date().toLocaleTimeString()})`;
+        // Fonction centrale de mise à jour de la position de l'antenne (Rover)
+        function updateRoverPosition(lat, lon, alt, fixQ, sats, hdop, customAccCm) {
+            state.rover.lat = lat;
+            state.rover.lon = lon;
+            state.rover.alt = alt || 0;
+            state.rover.fixQuality = fixQ;
+            state.rover.sats = sats || 0;
+            state.rover.hdop = hdop || 1.0;
 
-            const parts = line.split(',');
-            if (parts.length < 10) return;
-
-            const rawLat = parts[2];
-            const ns = parts[3];
-            const rawLon = parts[4];
-            const ew = parts[5];
-            const fixQ = parseInt(parts[6], 10) || 0;
-            const sats = parseInt(parts[7], 10) || 0;
-            const hdop = parseFloat(parts[8]) || 1.0;
-            const alt = parseFloat(parts[9]) || 0.0;
-
-            if (!rawLat || !rawLon || fixQ === 0) return;
-
-            const latDeg = Math.floor(parseFloat(rawLat) / 100);
-            const latMin = parseFloat(rawLat) - latDeg * 100;
-            let lat = latDeg + latMin / 60.0;
-            if (ns === 'S') lat = -lat;
-
-            const lonDeg = Math.floor(parseFloat(rawLon) / 100);
-            const lonMin = parseFloat(rawLon) - lonDeg * 100;
-            let lon = lonDeg + lonMin / 60.0;
-            if (ew === 'W') lon = -lon;
             let label = 'GPS SIMPLE (>1m)';
-            let accCm = 150.0;
+            let accCm = customAccCm || Math.max(80.0, hdop * 120.0);
             let badgeColor = 'text-rose-400';
             let dotColor = 'bg-rose-500';
 
@@ -2631,15 +2833,96 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 
             const elBadge = document.getElementById('fix-type-badge');
             const elDot = document.getElementById('fix-dot');
-            elBadge.textContent = label;
-            elBadge.className = `font-extrabold text-[11px] leading-tight ${badgeColor}`;
+            if (elBadge) {
+                elBadge.textContent = label;
+                elBadge.className = `font-extrabold text-[11px] leading-tight ${badgeColor}`;
+            }
             if (elDot) elDot.className = `w-2.5 h-2.5 rounded-full ${dotColor}`;
-            document.getElementById('accuracy-val').textContent = accCm.toFixed(1);
-            document.getElementById('sat-count').textContent = sats;
+
+            const elAcc = document.getElementById('accuracy-val');
+            const elSat = document.getElementById('sat-count');
+            if (elAcc) elAcc.textContent = accCm.toFixed(1);
+            if (elSat) elSat.textContent = state.rover.sats;
 
             if (roverMarker) roverMarker.setLatLng([lat, lon]);
             refreshConnectionStatusUI();
             updateGuidanceHUD();
+        }
+
+        // Décodeur universel de trames NMEA ($GNGGA, $GPGGA, $GNRMC, $GPRMC, $GNGNS) comme sur SW Maps
+        function parseNmeaLine(line, fromRealHardware = true) {
+            if (!line || !line.includes('$G')) return;
+            const startIdx = line.indexOf('$G');
+            const cleanLine = line.slice(startIdx).trim();
+
+            if (fromRealHardware) {
+                state.lastRealPacketTime = Date.now();
+                state.nmeaPacketsCount++;
+            }
+
+            const elLive = document.getElementById('nmea-live-line');
+            const elCount = document.getElementById('nmea-byte-counter');
+            if (elLive) elLive.textContent = cleanLine;
+            if (elCount) elCount.textContent = `${state.nmeaPacketsCount} trames OK`;
+
+            const parts = cleanLine.split('*')[0].split(',');
+            const type = parts[0];
+
+            // Trames GGA ($GNGGA / $GPGGA)
+            if (type.endsWith('GGA') && parts.length >= 10) {
+                const rawLat = parts[2];
+                const ns = parts[3];
+                const rawLon = parts[4];
+                const ew = parts[5];
+                const fixQ = parseInt(parts[6], 10) || 0;
+                const sats = parseInt(parts[7], 10) || 0;
+                const hdop = parseFloat(parts[8]) || 1.0;
+                const alt = parseFloat(parts[9]) || 0.0;
+
+                if (!rawLat || !rawLon) {
+                    refreshConnectionStatusUI();
+                    return;
+                }
+
+                const latDeg = Math.floor(parseFloat(rawLat) / 100);
+                const latMin = parseFloat(rawLat) - latDeg * 100;
+                let lat = latDeg + latMin / 60.0;
+                if (ns === 'S') lat = -lat;
+
+                const lonDeg = Math.floor(parseFloat(rawLon) / 100);
+                const lonMin = parseFloat(rawLon) - lonDeg * 100;
+                let lon = lonDeg + lonMin / 60.0;
+                if (ew === 'W') lon = -lon;
+
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    state.rover.lastGgaRaw = cleanLine;
+                    updateRoverPosition(lat, lon, alt, fixQ || 1, sats, hdop);
+                }
+            }
+            // Trames RMC ($GNRMC / $GPRMC) au cas où l'antenne n'envoie que RMC au démarrage
+            else if (type.endsWith('RMC') && parts.length >= 7 && parts[2] === 'A') {
+                const rawLat = parts[3];
+                const ns = parts[4];
+                const rawLon = parts[5];
+                const ew = parts[6];
+                if (!rawLat || !rawLon) return;
+
+                const latDeg = Math.floor(parseFloat(rawLat) / 100);
+                const latMin = parseFloat(rawLat) - latDeg * 100;
+                let lat = latDeg + latMin / 60.0;
+                if (ns === 'S') lat = -lat;
+
+                const lonDeg = Math.floor(parseFloat(rawLon) / 100);
+                const lonMin = parseFloat(rawLon) - lonDeg * 100;
+                let lon = lonDeg + lonMin / 60.0;
+                if (ew === 'W') lon = -lon;
+
+                const modeIndicator = parts[12] || 'A';
+                const fixQ = modeIndicator === 'R' ? 4 : (modeIndicator === 'F' ? 5 : (modeIndicator === 'D' ? 2 : 1));
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    updateRoverPosition(lat, lon, state.rover.alt, fixQ, state.rover.sats || 12, state.rover.hdop);
+                }
+            }
         }
 
         // Ouvrir dans un onglet autonome pour lever les restrictions USB d'iframe
@@ -2826,6 +3109,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
             renderSavedPlatformsUI();
             renderSavedPlatformsOnMap();
             fitMapToTrial();
+            // Afficher une alerte claire si la page est dans une iframe qui bloque les popups WebUSB/WebSerial
+            if (window.self !== window.top) {
+                document.getElementById('iframe-usb-warning')?.classList.remove('hidden');
+            }
             // Démarrer automatiquement l'écoute silencieuse du pont USB/Centipede et le rafraîchissement des voyants
             connectLocalBridge(true);
             refreshConnectionStatusUI();
