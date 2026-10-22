@@ -85,6 +85,30 @@
             pointer-events: none;
             box-shadow: 0 2px 6px rgba(0,0,0,0.6);
         }
+        .platform-pin-label {
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #10b981;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 8px;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.65);
+        }
+        .platform-pin-label-inactive {
+            background: rgba(15, 23, 42, 0.90);
+            border: 1.5px solid #38bdf8;
+            color: #bae6fd;
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            white-space: nowrap;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 
@@ -108,8 +132,15 @@
                         <span id="ntripHeaderText">Centipede: Prêt</span>
                     </span>
                 </div>
-                <div id="activePlatformBanner" class="text-[10px] text-slate-400 font-medium truncate max-w-[260px] sm:max-w-xs">
-                    Plateforme : <span class="text-amber-300 font-semibold">2026 • Amiens • Plateforme Essais Nord</span>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <div id="activePlatformBanner" onclick="switchStep(2)" class="cursor-pointer hover:underline text-[10px] text-slate-300 font-medium truncate max-w-[260px] sm:max-w-sm flex items-center gap-1" title="Cliquer pour gérer ou changer de plateforme">
+                        <i class="fa-solid fa-location-dot text-amber-400"></i>
+                        <span>Plateforme active : <strong class="text-amber-300 font-semibold">2026 • Amiens - Estrées • Plateforme Essais Céréales Nord</strong></span>
+                    </div>
+                    <button onclick="switchStep(2); fitAllSavedPlatformsOnMap();" class="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold flex items-center gap-1 transition" title="Voir l'emplacement de toutes les plateformes sauvegardées">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        <span id="headerPlatformsCount">2 Plateformes</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -215,8 +246,11 @@
                     <button onclick="centerOnRover()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Centrer sur mon antenne GPS">
                         <i class="fa-solid fa-crosshairs text-xs"></i>
                     </button>
-                    <button onclick="fitTrialBounds()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 transition flex items-center justify-center" title="Centrer sur les essais">
+                    <button onclick="fitTrialBounds()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 transition flex items-center justify-center" title="Centrer sur la plateforme et les essais actifs">
                         <i class="fa-solid fa-border-all text-xs"></i>
+                    </button>
+                    <button onclick="fitAllSavedPlatformsOnMap()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-emerald-500 text-amber-300 hover:text-slate-950 transition flex items-center justify-center" title="Voir l'emplacement de toutes les plateformes sauvegardées sur la carte">
+                        <i class="fa-solid fa-map-location-dot text-xs"></i>
                     </button>
                     <button onclick="toggleMapLayer()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Changer fond de carte (IGN Ortho / Satellite / Plan)">
                         <i class="fa-solid fa-layer-group text-xs"></i>
@@ -318,6 +352,31 @@
                  ÉTAPE 1 : CONNEXION ANTENNE GPS & RÉSEAU CENTIPEDE RTK
                  ===================================================================== -->
             <div id="stepContent1" class="flex-1 overflow-y-auto p-3 space-y-3">
+                <div class="bg-amber-500/10 border-2 border-amber-400/70 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                            <i class="fa-brands fa-usb"></i>
+                            Spécial Antenne « FT232R USB UART » (FTDI)
+                        </h2>
+                        <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-400/40">
+                            VID:0403 PID:6001
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-200 leading-relaxed">
+                        Si votre antenne apparaît sous le nom <b>FT232R USB UART</b>, utilisez le pilote direct WebUSB ci-dessous ou ouvrez d'abord l'application dans un onglet complet pour débloquer l'accès USB :
+                    </p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="connectFtdiWebUsb()" class="py-2 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-microchip"></i>
+                            <span>Pilote Direct FT232R (WebUSB)</span>
+                        </button>
+                        <button onclick="openStandaloneWindow()" class="py-2 px-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-up-right-from-square"></i>
+                            <span>Débloquer USB (Plein Écran)</span>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-3 space-y-2">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
@@ -342,160 +401,68 @@
                                     A. Câble USB ou Bluetooth COM (Trames NMEA)
                                 </span>
                                 <select id="selBaudRateStep1" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] font-mono-tech text-white">
-                                    <option value="115200" selected>115200 bauds</option>
-                                    <option value="38400">38400 bauds</option>
+                                    <option value="115200">115200 bauds</option>
+                                    <option value="38400" selected>38400 bauds (FT232R std)</option>
                                     <option value="57600">57600 bauds</option>
                                     <option value="9600">9600 bauds</option>
                                 </select>
                             </div>
-                            <p class="text-[10px] text-slate-400">
-                                Pour récepteur u-blox ZED-F9P, Ardusimple, Emlid Reach, Septentrio, Trimble en USB ou Bluetooth SPP.
+                            <p class="text-[10px] text-slate-300 leading-relaxed">
+                                Contourne le blocage USB du navigateur : ce petit script Windows (sans installation) détecte automatiquement votre <b>FT232R USB UART</b>, lui envoie les corrections <b>Centipede RTK</b> et transmet votre position GPS centimétrique en direct à cette page.
                             </p>
-                            <button onclick="connectWebSerialNmea()" class="w-full py-2 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
-                                <i class="fa-solid fa-plug"></i>
-                                <span>Choisir le port de l'antenne (USB / Bluetooth COM)</span>
-                            </button>
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <button onclick="downloadFt232rBridgeBat()" class="py-2 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition">
+                                    <i class="fa-solid fa-download"></i>
+                                    <span>1. Télécharger Pont (.BAT)</span>
+                                </button>
+                                <button onclick="connectLocalBridgeStream()" id="btnConnectBridge" class="py-2 px-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition">
+                                    <i class="fa-solid fa-link"></i>
+                                    <span>2. Relier au Pont Local</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Method B: Android / iOS / Windows Location Service (with Lefebure NTRIP / SW Maps) -->
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                        <!-- SOLUTION 2: Direct WebUSB FTDI FT232R Driver (VID 0x0403 / PID 0x6001) & WebSerial -->
+                        <div class="bg-slate-950 border border-sky-500/40 rounded-xl p-2.5 space-y-2">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-mobile-screen-button"></i>
-                                    B. Antenne via App NTRIP (Lefebure / Bluetooth GNSS)
+                                <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                                    <i class="fa-brands fa-usb"></i>
+                                    2. Connexion USB Directe (Pilote FTDI 0x0403 & Port COM)
                                 </span>
                             </div>
                             <p class="text-[10px] text-slate-400">
-                                Si votre antenne et le réseau Centipede sont déjà connectés dans l'application <b>Lefebure NTRIP Client</b> (Position fictive / Mock Location sur Android ou Windows).
+                                Utilisez <b>Pilote WebUSB FT232R</b> si votre antenne apparaît sous le nom <i>« FT232R USB UART »</i> sans numéro de port COM (sur Android OTG ou Windows), ou <b>Port Série COM</b> si elle a un numéro COM.
                             </p>
-                            <button onclick="requestBrowserGpsPermission()" class="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
-                                <i class="fa-solid fa-location-crosshairs"></i>
-                                <span>Autoriser et lire la position GPS de l'appareil</span>
-                            </button>
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <button onclick="connectWebUsbFt232r()" class="py-2 px-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] flex items-center justify-center gap-1.5 shadow transition">
+                                    <i class="fa-solid fa-microchip"></i>
+                                    <span>Pilote WebUSB FT232R</span>
+                                </button>
+                                <button onclick="connectWebSerialNmea()" class="py-2 px-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow transition">
+                                    <i class="fa-solid fa-plug"></i>
+                                    <span>Port Série COM + Auto-Baud</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Method C: Web Bluetooth BLE UART -->
-                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                        <!-- SOLUTION 3: Android / Windows Location Service (GnssMaster / SW Maps / Lefebure) -->
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
-                                    <i class="fa-brands fa-bluetooth-b"></i>
-                                    C. Bluetooth Low Energy (BLE UART NMEA)
+                                <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-mobile-screen-button text-emerald-400"></i>
+                                    3. Via Application GPS Tiers (GnssMaster / Lefebure / BLE)
                                 </span>
                             </div>
-                            <button onclick="connectWebBluetoothGnss()" class="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
-                                <i class="fa-brands fa-bluetooth"></i>
-                                <span>Scanner une antenne Bluetooth BLE</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Important Notice if inside an iframe -->
-                    <div id="iframeWarningBox" class="bg-amber-500/10 border border-amber-500/40 rounded-lg p-2 text-[11px] text-amber-200 flex items-center justify-between gap-2">
-                        <span><i class="fa-solid fa-circle-info text-amber-400 mr-1"></i> Si la fenêtre de choix du port USB/Bluetooth est bloquée par l'aperçu, ouvrez l'application dans un onglet dédié :</span>
-                        <button onclick="openStandaloneWindow()" class="shrink-0 px-2.5 py-1 rounded bg-amber-400 text-slate-950 font-extrabold text-[10px]">
-                            Ouvrir Onglet
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Section 1B: Réseau Centipede RTK Configuration -->
-                <div class="bg-slate-950/90 border border-sky-500/40 rounded-xl p-3 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-tower-cell"></i>
-                            Étape 1B — Réseau Centipede RTK (NTRIP)
-                        </h2>
-                        <span id="centipedeStatusBadge" class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                            caster.centipede.fr:2101
-                        </span>
-                    </div>
-
-                    <p class="text-[11px] text-slate-400 leading-relaxed">
-                        Paramètres officiels du réseau collaboratif open-source <b>Centipede RTK</b> pour recevoir les corrections centimétriques RTCM3 :
-                    </p>
-
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="col-span-2">
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Caster NTRIP Centipede</label>
-                            <input id="ntripHost" type="text" value="caster.centipede.fr" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-white outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Port</label>
-                            <input id="ntripPort" type="number" value="2101" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-amber-300 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Utilisateur</label>
-                            <input id="ntripUser" type="text" value="centipede" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-emerald-300 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Mot de passe</label>
-                            <input id="ntripPass" type="text" value="centipede" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono-tech text-emerald-300 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Point de montage (Base)</label>
-                            <input id="ntripMountpoint" type="text" value="NEAREST" placeholder="ex: BOVES, AMIENS..." class="w-full bg-slate-900 border border-sky-500/60 rounded-lg px-2 py-1 text-xs font-mono-tech font-bold text-sky-300 outline-none">
-                        </div>
-                    </div>
-
-                    <!-- Quick Regional Base Selector & Auto-detect -->
-                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span class="text-[10px] text-slate-400">Bases Centipede proches :</span>
-                        <button onclick="selectCentipedeMount('BOVES')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">BOVES (80)</button>
-                        <button onclick="selectCentipedeMount('AMIENS')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">AMIENS (80)</button>
-                        <button onclick="selectCentipedeMount('ESTREES')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">ESTREES (80)</button>
-                        <button onclick="selectCentipedeMount('ARRAS')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">ARRAS (62)</button>
-                        <button onclick="selectCentipedeMount('BEAUVAIS')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-[10px] font-mono-tech text-slate-200">BEAUVAIS (60)</button>
-                        <button onclick="fetchNearestCentipedeBase()" class="px-2 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-[10px] font-bold text-sky-300">
-                            <i class="fa-solid fa-magnifying-glass-location"></i> Chercher Base Auto
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button onclick="startCentipedeStream()" id="btnStartCentipede" class="py-2 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
-                            <i class="fa-solid fa-satellite"></i>
-                            <span>Activer Flux Centipede</span>
-                        </button>
-                        <button onclick="copyCentipedeConfig()" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition" title="Copier les identifiants pour Lefebure / SW Maps">
-                            <i class="fa-solid fa-copy"></i>
-                            <span>Copier pour Lefebure</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Step 1 Next Button -->
-                <button onclick="switchStep(2)" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
-                    <span>Passer à l'Étape 2 : Ligne A-B & Sauvegarde Plateforme</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            </div>
-
-            <!-- =====================================================================
-                 ÉTAPE 2 : LIGNE A-B & SAUVEGARDE DE LA PLATEFORME (ANNÉE, SITE, NOM)
-                 ===================================================================== -->
-            <div id="stepContent2" class="hidden flex-1 overflow-y-auto p-3 space-y-3">
-                
-                <!-- Platform Metadata & Save Box -->
-                <div class="bg-slate-950/90 border border-emerald-500/40 rounded-xl p-3 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-floppy-disk"></i>
-                            1. Identification de la Plateforme
-                        </h2>
-                        <span class="text-[10px] font-mono-tech text-slate-400" id="savedPlatformsCountBadge">2 sauvegardées</span>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-2">
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Année</label>
-                            <input id="platYear" type="number" value="2026" oninput="updatePlatformBanner()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech font-bold text-amber-300 focus:border-emerald-500 outline-none">
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Site (Commune / Lieu-dit)</label>
-                            <input id="platSite" type="text" value="Amiens - Estrées" oninput="updatePlatformBanner()" placeholder="ex: Boves, Estrées-Mons..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white focus:border-emerald-500 outline-none">
-                        </div>
-                        <div class="col-span-3">
-                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Nom de la plateforme</label>
-                            <input id="platName" type="text" value="Plateforme Essais Céréales Nord" oninput="updatePlatformBanner()" placeholder="ex: Plateforme Variétés & Fongicides" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-300 focus:border-emerald-500 outline-none">
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <button onclick="requestBrowserGpsPermission()" class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 border border-slate-700 transition">
+                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                    <span>GPS Système (Mock)</span>
+                                </button>
+                                <button onclick="connectWebBluetoothGnss()" class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white font-bold text-[11px] flex items-center justify-center gap-1.5 border border-slate-700 transition">
+                                    <i class="fa-brands fa-bluetooth"></i>
+                                    <span>Bluetooth BLE</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -591,6 +558,208 @@
                         </button>
                     </div>
                     <div id="savedPlatformsList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1"></div>
+                </div>
+
+                <button onclick="switchStep(3)" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
+                    <span>Passer à l'Étape 3 : Réglage de l'Essai & Centres d'Allées</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- =====================================================================
+                 ÉTAPE 2 : LIGNE A-B & SAUVEGARDE DE LA PLATEFORME (ANNÉE, SITE, NOM)
+                 ===================================================================== -->
+            <div id="stepContent2" class="hidden flex-1 overflow-y-auto p-3 space-y-3">
+                
+                <!-- 1. STATUT & EMPLACEMENT DE LA PLATEFORME ACTIVE -->
+                <div class="bg-slate-950 border-2 border-emerald-500/60 rounded-xl p-3 space-y-2.5 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-xs font-extrabold">1</span>
+                            <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+                                Plateforme Active & Son Emplacement
+                            </h2>
+                        </div>
+                        <span id="platformSaveStateBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono-tech font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <i class="fa-solid fa-check-circle mr-1"></i>Sauvegardée
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Année de récolte</label>
+                            <input id="platYear" type="number" value="2026" oninput="markPlatformModified(); updatePlatformBanner()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech font-bold text-amber-300 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Site / Commune / Champ (Emplacement)</label>
+                            <input id="platSite" type="text" value="Amiens - Estrées" oninput="markPlatformModified(); updatePlatformBanner()" placeholder="ex: Boves - Parcelle Nord..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white focus:border-emerald-500 outline-none">
+                        </div>
+                        <div class="col-span-3">
+                            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Nom de la plateforme d'essais</label>
+                            <input id="platName" type="text" value="Plateforme Essais Céréales Nord" oninput="markPlatformModified(); updatePlatformBanner()" placeholder="ex: Plateforme Variétés & Fongicides" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-emerald-300 focus:border-emerald-500 outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Résumé visuel immédiat de l'emplacement sur le terrain -->
+                    <div class="bg-slate-900/95 border border-slate-800 rounded-lg p-2.5 space-y-1">
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase">
+                            <span><i class="fa-solid fa-map-pin text-amber-400 mr-1"></i>Emplacement Géographique sur la Carte</span>
+                            <button onclick="fitTrialBounds()" class="text-sky-400 hover:text-sky-300 font-bold underline flex items-center gap-1">
+                                <i class="fa-solid fa-magnifying-glass-location"></i> Centrer la carte ici
+                            </button>
+                        </div>
+                        <div id="activePlatformGeoSummary" class="font-mono-tech text-[11px] text-slate-200 leading-relaxed">
+                            Point A : 49.8732500°N, 2.3309500°E (L93 X:651894m Y:6975241m)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. LEVÉ DE LA LIGNE DE RÉFÉRENCE A-B -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-xs font-extrabold">2</span>
+                            <h2 class="text-xs font-extrabold uppercase tracking-wider text-amber-400">
+                                Coordonnées GPS de la Ligne A → B
+                            </h2>
+                        </div>
+                        <span id="uiAzimuthBadge" class="text-[11px] font-mono-tech bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-amber-300">
+                            Azimut: 23.6°
+                        </span>
+                    </div>
+
+                    <!-- Point A -->
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded bg-emerald-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">A</span>
+                                Point A (Origine 0,0 de la plateforme)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="setPointFromRover('A')" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 shadow">
+                                    <i class="fa-solid fa-satellite-dish"></i> Capturer A au GPS
+                                </button>
+                                <button onclick="startMapPick('A')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold flex items-center gap-1">
+                                    <i class="fa-solid fa-location-dot"></i> Cliquer Carte
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <div>
+                                <span class="text-[9px] text-slate-400">Latitude A (WGS84)</span>
+                                <input id="inpALat" type="number" step="0.0000001" value="49.8732500" onchange="markPlatformModified(); onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none">
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400">Longitude A (WGS84)</span>
+                                <input id="inpALon" type="number" step="0.0000001" value="2.3309500" onchange="markPlatformModified(); onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Point B -->
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center">B</span>
+                                Point B (Direction de la ligne AB)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="setPointFromRover('B')" class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold flex items-center gap-1 shadow">
+                                    <i class="fa-solid fa-satellite-dish"></i> Capturer B au GPS
+                                </button>
+                                <button onclick="startMapPick('B')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-semibold flex items-center gap-1">
+                                    <i class="fa-solid fa-location-dot"></i> Cliquer Carte
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 items-end">
+                            <div>
+                                <span class="text-[9px] text-slate-400">Latitude B</span>
+                                <input id="inpBLat" type="number" step="0.0000001" value="49.8738500" onchange="markPlatformModified(); onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none">
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400">Longitude B</span>
+                                <input id="inpBLon" type="number" step="0.0000001" value="2.3313500" onchange="markPlatformModified(); onBaselineInputChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none">
+                            </div>
+                            <div>
+                                <span class="text-[9px] text-slate-400">Azimut AB (°)</span>
+                                <input id="inpAzimuth" type="number" step="0.1" value="23.6" onchange="markPlatformModified(); onAzimuthManualChange()" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-amber-300 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons: Save / Update or Create New -->
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="saveCurrentPlatform(false)" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-950/60 transition">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Enregistrer / Mettre à jour</span>
+                        </button>
+                        <button onclick="saveCurrentPlatform(true)" class="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition" title="Ajouter comme une nouvelle plateforme dans la bibliothèque">
+                            <i class="fa-solid fa-folder-plus"></i>
+                            <span>Créer Nouvelle Plateforme</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. BIBLIOTHÈQUE & EMPLACEMENT DES PLATEFORMES SAUVEGARDÉES -->
+                <div class="bg-slate-950 border-2 border-sky-500/50 rounded-xl p-3 space-y-2.5 shadow-lg">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-500/40 text-sky-300 flex items-center justify-center text-xs font-extrabold">3</span>
+                            <div>
+                                <h3 class="text-xs font-extrabold uppercase tracking-wider text-sky-400">
+                                    Emplacement des Plateformes Sauvegardées
+                                </h3>
+                                <p class="text-[10px] text-slate-400">
+                                    Cliquez sur une plateforme pour la charger ou visualiser son emplacement sur la carte
+                                </p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-mono-tech font-bold" id="savedPlatformsCountBadge">
+                            2 sauvegardées
+                        </span>
+                    </div>
+
+                    <!-- Où sont enregistrées mes plateformes ? (Mémoire + Fichier PC/Tablette) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-bold text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-hard-drive text-emerald-400"></i>
+                                Emplacement du fichier de sauvegarde (PC / Tablette) :
+                            </span>
+                            <span id="storageLocationStatus" class="text-[10px] font-mono-tech text-emerald-400">
+                                Mémoire App + Fichier .JSON
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="exportPlatformsJSON()" class="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-slate-100 hover:text-white border border-slate-700 text-[11px] font-bold flex items-center justify-center gap-1.5 transition" title="Télécharger toutes vos plateformes dans le dossier Téléchargements de votre appareil">
+                                <i class="fa-solid fa-download text-emerald-400"></i>
+                                <span>Sauvegarder Fichier (.JSON)</span>
+                            </button>
+                            <label class="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-100 hover:text-white border border-slate-700 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition" title="Charger un fichier de plateformes .JSON depuis votre appareil">
+                                <i class="fa-solid fa-file-import text-sky-400"></i>
+                                <span>Ouvrir Fichier (.JSON)</span>
+                                <input type="file" accept=".json" onchange="importPlatformsJSON(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Barre d'outils Carte & Filtres des plateformes -->
+                    <div class="flex flex-wrap items-center justify-between gap-1.5">
+                        <button onclick="fitAllSavedPlatformsOnMap()" class="flex-1 py-1.5 px-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 text-[11px] font-extrabold flex items-center justify-center gap-1.5 transition">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                            <span>Voir toutes les plateformes sur la carte</span>
+                        </button>
+                        <select id="filterPlatYear" onchange="renderSavedPlatforms()" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] font-mono-tech text-white outline-none">
+                            <option value="all">Toutes années</option>
+                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+
+                    <!-- Liste détaillée des plateformes avec coordonnées et actions claires -->
+                    <div id="savedPlatformsList" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
                 </div>
 
                 <button onclick="switchStep(3)" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition">
@@ -819,7 +988,7 @@
             <div class="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-satellite-dish text-emerald-400"></i>
-                    <h3 class="font-bold text-sm text-white">Connexion Antenne GPS & Centipede RTK</h3>
+                    <h3 class="font-bold text-sm text-white">Assistant Connexion « FT232R USB UART » & Centipede</h3>
                 </div>
                 <button onclick="closeGnssModal()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center">
                     <i class="fa-solid fa-xmark"></i>
@@ -827,71 +996,79 @@
             </div>
 
             <div class="p-4 space-y-3 max-h-[82vh] overflow-y-auto">
-                <!-- Standalone Window Helper -->
-                <div class="bg-amber-500/15 border border-amber-500/40 rounded-xl p-2.5 flex items-center justify-between gap-2">
-                    <div class="text-[11px] text-amber-200 leading-tight">
-                        <b>Astuce :</b> Si la popup de connexion USB/Bluetooth est bloquée par la fenêtre d'aperçu, ouvrez l'application dans un onglet complet :
+                <!-- Option 1: 1-Click Windows Bridge for FT232R + Centipede -->
+                <div class="bg-emerald-950/40 border-2 border-emerald-500/60 rounded-xl p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt"></i>
+                            Solution A — Pont Windows « FT232R USB UART + Centipede »
+                        </span>
+                        <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Sans blocage navigateur</span>
                     </div>
-                    <button onclick="openStandaloneWindow()" class="shrink-0 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs">
-                        Plein Écran
-                    </button>
+                    <p class="text-[11px] text-slate-300 leading-relaxed">
+                        Si votre navigateur ne trouve pas <b>FT232R USB UART</b> : téléchargez et double-cliquez sur ce fichier <code>.bat</code>. Il ouvre le port USB/COM de l'antenne, se connecte à <b>caster.centipede.fr:2101</b>, envoie les corrections RTCM3 à l'antenne et ouvre l'application sur <code>http://localhost:8765</code>.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="downloadFt232rBridgeBat()" class="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-download"></i>
+                            <span>1. Télécharger le Pont (.BAT)</span>
+                        </button>
+                        <button onclick="connectLocalBridgeStream()" class="py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-link"></i>
+                            <span>2. Connecter au Pont Local</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Option 1: Direct USB / Bluetooth SPP COM Port (Web Serial NMEA + RTCM injection) -->
+                <!-- Option 2: Direct WebUSB FT232R & WebSerial COM -->
                 <div class="bg-slate-950 border border-sky-500/40 rounded-xl p-3 space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
                             <i class="fa-brands fa-usb"></i>
-                            1. Port Série USB ou Bluetooth COM (NMEA + Centipede)
+                            Solution B — Pilote Direct WebUSB FT232R (0x0403) & Port COM
                         </span>
-                        <select id="selBaudRate" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] font-mono-tech text-white">
-                            <option value="115200" selected>115200 bauds</option>
+                        <select id="selBaudRate" onchange="syncBaudSelectors(this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-[11px] font-mono-tech text-amber-300">
                             <option value="38400">38400 bauds</option>
+                            <option value="115200" selected>115200 bauds</option>
                             <option value="57600">57600 bauds</option>
                             <option value="9600">9600 bauds</option>
                         </select>
                     </div>
                     <p class="text-[11px] text-slate-400">
-                        Connecte directement votre récepteur RTK (Ardusimple F9P, Emlid, Septentrio...) en USB ou Bluetooth COM.
+                        • <b>Pilote WebUSB FT232R</b> : dialogue directement avec la puce FTDI (<code>VID 0403 / PID 6001</code>) sur Android OTG ou Windows (si le pilote WinUSB est actif).<br>
+                        • <b>Port Série COM</b> : si votre FT232R apparaît dans Windows sous <i>Ports (COM et LPT) → USB Serial Port (COMx)</i>.
                     </p>
-                    <button onclick="connectWebSerialNmea()" class="w-full py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
-                        <i class="fa-solid fa-plug"></i>
-                        <span>Sélectionner le port de l'antenne (USB / COM)</span>
-                    </button>
-                </div>
-
-                <!-- Option 2: OS Location Permission Prompt (Android/iOS/Windows with Lefebure NTRIP) -->
-                <div class="bg-slate-950 border border-emerald-500/40 rounded-xl p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                            <i class="fa-solid fa-mobile-screen-button"></i>
-                            2. GPS Appareil avec Lefebure NTRIP / SW Maps
-                        </span>
-                        <span id="permStatusBadge" class="text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-300">Prêt</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="connectWebUsbFt232r()" class="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-microchip"></i>
+                            <span>Pilote WebUSB FT232R</span>
+                        </button>
+                        <button onclick="connectWebSerialNmea()" class="py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition">
+                            <i class="fa-solid fa-plug"></i>
+                            <span>Port Série COM (Auto-Baud)</span>
+                        </button>
                     </div>
-                    <button onclick="requestBrowserGpsPermission()" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
-                        <i class="fa-solid fa-location-crosshairs"></i>
-                        <span>Demander l'autorisation GPS maintenant</span>
-                    </button>
                 </div>
 
-                <!-- Option 3: Web Bluetooth BLE -->
-                <div class="bg-slate-950 border border-indigo-500/40 rounded-xl p-3 space-y-2">
-                    <span class="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
-                        <i class="fa-brands fa-bluetooth-b"></i>
-                        3. Antenne Bluetooth Low Energy (BLE UART)
-                    </span>
-                    <button onclick="connectWebBluetoothGnss()" class="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow transition">
-                        <i class="fa-brands fa-bluetooth"></i>
-                        <span>Rechercher une antenne Bluetooth BLE</span>
-                    </button>
+                <!-- Windows Driver Troubleshooting Tip for FT232R -->
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-[11px] text-slate-300 space-y-1">
+                    <div class="font-bold text-amber-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                        Votre antenne s'appelle « FT232R USB UART » dans Windows ?
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-relaxed">
+                        Quand Windows affiche le nom <b>« FT232R USB UART »</b> dans <i>Autres périphériques</i> (au lieu de <i>USB Serial Port COMx</i>), cela signifie que le pilote FTDI VCP n'est pas encore activé : allez dans <b>Paramètres Windows → Windows Update → Options avancées → Mises à jour facultatives → Pilotes</b> et cochez <b>FTDI - Ports</b> (ou utilisez <b>Pilote WebUSB FT232R</b>).
+                    </p>
                 </div>
 
                 <!-- Live Diagnostic Log -->
                 <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
-                    <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">Journal de connexion & Trames NMEA / Centipede :</div>
-                    <div id="gnssDiagLog" class="font-mono-tech text-[11px] text-emerald-300 h-20 overflow-y-auto space-y-0.5">
-                        <div>[Système] Prêt. Caster Centipede configuré sur caster.centipede.fr:2101</div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Journal FT232R / NMEA / Centipede :</span>
+                        <span id="modalRxBytes" class="text-[10px] font-mono-tech text-sky-400">0 octets reçus</span>
+                    </div>
+                    <div id="gnssDiagLog" class="font-mono-tech text-[11px] text-emerald-300 h-28 overflow-y-auto space-y-0.5">
+                        <div>[Système] Prêt. Support FT232R USB UART (0x0403:0x6001) chargé.</div>
                     </div>
                 </div>
             </div>
@@ -927,9 +1104,11 @@
                 hdop: 0.6
             },
             platform: {
+                id: 'plat-1',
                 year: 2026,
                 site: 'Amiens - Estrées',
-                name: 'Plateforme Essais Céréales Nord'
+                name: 'Plateforme Essais Céréales Nord',
+                isSaved: true
             },
             baseline: {
                 latA: 49.8732500,
@@ -948,7 +1127,9 @@
                     lonA: 2.3309500,
                     latB: 49.8738500,
                     lonB: 2.3313500,
-                    azimuthDeg: 23.6
+                    azimuthDeg: 23.6,
+                    updatedAt: '22/10/2026 14:00',
+                    trialsCount: 2
                 },
                 {
                     id: 'plat-2',
@@ -959,7 +1140,9 @@
                     lonA: 2.3914500,
                     latB: 49.8459000,
                     lonB: 2.3918500,
-                    azimuthDeg: 18.4
+                    azimuthDeg: 18.4,
+                    updatedAt: '22/10/2026 09:30',
+                    trialsCount: 1
                 }
             ],
             trials: [
@@ -1072,7 +1255,7 @@
         /* ============================================================================
          * 3. LEAFLET MAP & DRAGGABLE RADAR HUD
          * ============================================================================ */
-        let map, baseLayers, plotLayerGroup, stakeLayerGroup, baselineLayerGroup, roverMarker, roverAccuracyCircle, guidanceLine;
+        let map, baseLayers, platformsOverviewLayerGroup, plotLayerGroup, stakeLayerGroup, baselineLayerGroup, roverMarker, roverAccuracyCircle, guidanceLine;
 
         function initMap() {
             map = L.map('map', {
@@ -1101,6 +1284,7 @@
             baseLayers = [ignOrtho, esriSat, osmLayer];
             baseLayers[0].addTo(map);
 
+            platformsOverviewLayerGroup = L.layerGroup().addTo(map);
             baselineLayerGroup = L.layerGroup().addTo(map);
             plotLayerGroup = L.layerGroup().addTo(map);
             stakeLayerGroup = L.layerGroup().addTo(map);
@@ -1209,37 +1393,91 @@
             });
         }
 
+        function markPlatformModified() {
+            state.platform.isSaved = false;
+            const badge = document.getElementById('platformSaveStateBadge');
+            if (badge) {
+                badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono-tech font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse';
+                badge.innerHTML = '<i class="fa-solid fa-pen mr-1"></i>Modifiée (Non enregistrée)';
+            }
+        }
+
         function updatePlatformBanner() {
             state.platform.year = parseInt(document.getElementById('platYear').value) || 2026;
             state.platform.site = document.getElementById('platSite').value || 'Site';
             state.platform.name = document.getElementById('platName').value || 'Plateforme';
             const banner = document.getElementById('activePlatformBanner');
             if (banner) {
-                banner.innerHTML = `Plateforme : <span class="text-amber-300 font-semibold">${state.platform.year} • ${state.platform.site} • ${state.platform.name}</span>`;
+                banner.innerHTML = `<i class="fa-solid fa-location-dot text-amber-400"></i><span>Plateforme active : <strong class="text-amber-300 font-semibold">${state.platform.year} • ${state.platform.site} • ${state.platform.name}</strong></span>`;
+            }
+            const l93A = wgs84ToLambert93(state.baseline.latA, state.baseline.lonA);
+            const geoSum = document.getElementById('activePlatformGeoSummary');
+            if (geoSum) {
+                geoSum.innerHTML = `<div><b class="text-emerald-400">Point A :</b> ${state.baseline.latA.toFixed(7)}°N, ${state.baseline.lonA.toFixed(7)}°E <span class="text-amber-300">(L93 X:${l93A.x.toFixed(2)} Y:${l93A.y.toFixed(2)})</span></div>
+                <div><b class="text-amber-400">Point B :</b> ${state.baseline.latB.toFixed(7)}°N, ${state.baseline.lonB.toFixed(7)}°E • <b>Azimut AB :</b> ${state.baseline.azimuthDeg.toFixed(2)}°</div>`;
             }
         }
 
-        function saveCurrentPlatform() {
+        function saveCurrentPlatform(forceNew = false) {
             updatePlatformBanner();
-            const newPlat = {
-                id: 'plat-' + Date.now(),
-                year: state.platform.year,
-                site: state.platform.site,
-                name: state.platform.name,
-                latA: state.baseline.latA,
-                lonA: state.baseline.lonA,
-                latB: state.baseline.latB,
-                lonB: state.baseline.lonB,
-                azimuthDeg: state.baseline.azimuthDeg
-            };
-            state.savedPlatforms.unshift(newPlat);
+            const nowStr = new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            const trialsSnapshot = JSON.parse(JSON.stringify(state.trials));
+
+            let existingIdx = !forceNew && state.platform.id
+                ? state.savedPlatforms.findIndex(p => p.id === state.platform.id)
+                : -1;
+
+            if (existingIdx >= 0) {
+                state.savedPlatforms[existingIdx] = {
+                    ...state.savedPlatforms[existingIdx],
+                    year: state.platform.year,
+                    site: state.platform.site,
+                    name: state.platform.name,
+                    latA: state.baseline.latA,
+                    lonA: state.baseline.lonA,
+                    latB: state.baseline.latB,
+                    lonB: state.baseline.lonB,
+                    azimuthDeg: state.baseline.azimuthDeg,
+                    updatedAt: nowStr,
+                    trialsCount: trialsSnapshot.length,
+                    trials: trialsSnapshot
+                };
+            } else {
+                const newId = 'plat-' + Date.now();
+                state.platform.id = newId;
+                state.savedPlatforms.unshift({
+                    id: newId,
+                    year: state.platform.year,
+                    site: state.platform.site,
+                    name: state.platform.name,
+                    latA: state.baseline.latA,
+                    lonA: state.baseline.lonA,
+                    latB: state.baseline.latB,
+                    lonB: state.baseline.lonB,
+                    azimuthDeg: state.baseline.azimuthDeg,
+                    updatedAt: nowStr,
+                    trialsCount: trialsSnapshot.length,
+                    trials: trialsSnapshot
+                });
+            }
+
+            state.platform.isSaved = true;
+            const badge = document.getElementById('platformSaveStateBadge');
+            if (badge) {
+                badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono-tech font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                badge.innerHTML = '<i class="fa-solid fa-check-circle mr-1"></i>Sauvegardée';
+            }
+
             renderSavedPlatforms();
-            showToast(`Plateforme "${newPlat.year} - ${newPlat.name}" sauvegardée !`);
+            renderMapGeometry();
+            showToast(`Plateforme "${state.platform.year} • ${state.platform.site} — ${state.platform.name}" enregistrée !`);
         }
 
-        function loadSavedPlatform(platId) {
+        function loadSavedPlatform(platId, zoomToMap = true) {
             const p = state.savedPlatforms.find(item => item.id === platId);
             if (!p) return;
+            state.platform.id = p.id;
+            state.platform.isSaved = true;
             document.getElementById('platYear').value = p.year;
             document.getElementById('platSite').value = p.site;
             document.getElementById('platName').value = p.name;
@@ -1247,47 +1485,175 @@
             document.getElementById('inpALon').value = p.lonA.toFixed(7);
             document.getElementById('inpBLat').value = p.latB.toFixed(7);
             document.getElementById('inpBLon').value = p.lonB.toFixed(7);
-            updatePlatformBanner();
+
+            if (p.trials && Array.isArray(p.trials) && p.trials.length > 0) {
+                state.trials = JSON.parse(JSON.stringify(p.trials));
+                state.activeTrialId = state.trials[0].id;
+                loadTrialIntoForm(getActiveTrial());
+                renderTrialTabs();
+            }
+
+            const badge = document.getElementById('platformSaveStateBadge');
+            if (badge) {
+                badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono-tech font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                badge.innerHTML = '<i class="fa-solid fa-check-circle mr-1"></i>Sauvegardée';
+            }
+
             onBaselineInputChange();
-            fitTrialBounds();
-            showToast(`Plateforme "${p.name}" chargée`);
+            updatePlatformBanner();
+            renderSavedPlatforms();
+            if (zoomToMap) {
+                fitTrialBounds();
+            }
+            showToast(`Plateforme "${p.site} — ${p.name}" chargée et centrée sur la carte`);
+        }
+
+        function locatePlatformOnMap(platId) {
+            const p = state.savedPlatforms.find(item => item.id === platId);
+            if (!p) return;
+            const bounds = L.latLngBounds([[p.latA, p.lonA], [p.latB, p.lonB]]);
+            map.fitBounds(bounds, { padding: [70, 70], maxZoom: 20 });
+            showToast(`Carte centrée sur l'emplacement : ${p.year} • ${p.site}`);
+        }
+
+        function fitAllSavedPlatformsOnMap() {
+            if (state.savedPlatforms.length === 0) {
+                fitTrialBounds();
+                return;
+            }
+            const pts = [];
+            state.savedPlatforms.forEach(p => {
+                pts.push([p.latA, p.lonA]);
+                pts.push([p.latB, p.lonB]);
+            });
+            pts.push([state.baseline.latA, state.baseline.lonA]);
+            map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 19 });
+            showToast(`${state.savedPlatforms.length} plateforme(s) affichées sur la carte`);
         }
 
         function deleteSavedPlatform(platId) {
+            if (state.savedPlatforms.length <= 1) {
+                showToast('Conservez au moins une plateforme dans la bibliothèque.', true);
+                return;
+            }
             state.savedPlatforms = state.savedPlatforms.filter(item => item.id !== platId);
             renderSavedPlatforms();
+            renderMapGeometry();
+            showToast('Plateforme supprimée de la bibliothèque');
         }
 
         function renderSavedPlatforms() {
             const container = document.getElementById('savedPlatformsList');
             const badge = document.getElementById('savedPlatformsCountBadge');
+            const headerCount = document.getElementById('headerPlatformsCount');
             if (badge) badge.textContent = `${state.savedPlatforms.length} sauvegardée(s)`;
+            if (headerCount) headerCount.textContent = `${state.savedPlatforms.length} Plateformes`;
             if (!container) return;
 
-            container.innerHTML = state.savedPlatforms.map(p => `
-                <div class="bg-slate-900 border border-slate-800 rounded-lg p-2 flex items-center justify-between gap-2">
-                    <div class="min-w-0">
-                        <div class="text-xs font-bold text-white truncate">${p.year} • ${p.site} — <span class="text-emerald-400">${p.name}</span></div>
-                        <div class="text-[10px] font-mono-tech text-slate-400">
-                            A(${p.latA.toFixed(5)}, ${p.lonA.toFixed(5)}) → Az: ${p.azimuthDeg.toFixed(1)}°
+            const yearFilterEl = document.getElementById('filterPlatYear');
+            const yearFilter = yearFilterEl ? yearFilterEl.value : 'all';
+
+            const filtered = state.savedPlatforms.filter(p => {
+                if (yearFilter !== 'all' && String(p.year) !== String(yearFilter)) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">Aucune plateforme pour cette année.</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const isActive = p.id === state.platform.id;
+                const l93 = wgs84ToLambert93(p.latA, p.lonA);
+                const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, p.latA, p.lonA);
+                const distLabel = dist < 1000 ? `${dist.toFixed(0)} m` : `${(dist / 1000).toFixed(1)} km`;
+                const trialsCount = p.trials ? p.trials.length : (p.trialsCount || 1);
+
+                return `
+                <div class="rounded-xl p-2.5 border transition ${
+                    isActive
+                        ? 'bg-emerald-950/35 border-emerald-400 shadow-md'
+                        : 'bg-slate-900/95 border-slate-800 hover:border-slate-700'
+                }">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono-tech text-[10px] font-extrabold">${p.year}</span>
+                                <span class="text-xs font-extrabold text-white"><i class="fa-solid fa-location-dot text-emerald-400 mr-1"></i>${p.site}</span>
+                                ${isActive ? '<span class="px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 text-[9px] font-extrabold uppercase">Active</span>' : ''}
+                            </div>
+                            <div class="text-xs font-bold text-emerald-300 truncate mt-0.5">${p.name}</div>
+                        </div>
+                        <span class="shrink-0 text-[10px] font-mono-tech px-1.5 py-0.5 rounded bg-slate-950 text-sky-300 border border-slate-800" title="Distance depuis l'antenne GPS">
+                            à ${distLabel}
+                        </span>
+                    </div>
+
+                    <!-- Emplacement géographique détaillé -->
+                    <div class="mt-2 bg-slate-950/90 border border-slate-800/90 rounded-lg p-2 font-mono-tech text-[10px] text-slate-300 space-y-0.5">
+                        <div class="flex items-center justify-between">
+                            <span><b class="text-emerald-400">Pt A:</b> ${p.latA.toFixed(6)}°N, ${p.lonA.toFixed(6)}°E</span>
+                            <span class="text-amber-300">Azimut: ${p.azimuthDeg.toFixed(1)}°</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-400">
+                            <span><b>Lambert 93:</b> X=${l93.x.toFixed(1)}m Y=${l93.y.toFixed(1)}m</span>
+                            <span class="text-sky-300">${trialsCount} essai(s)</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="loadSavedPlatform('${p.id}')" class="px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[10px] font-bold transition">
-                            Charger
+
+                    <!-- Boutons d'action clairs -->
+                    <div class="mt-2 flex items-center justify-between gap-1.5">
+                        <button onclick="loadSavedPlatform('${p.id}', true)" class="flex-1 py-1.5 px-2 rounded-lg ${
+                            isActive ? 'bg-emerald-600 text-white' : 'bg-emerald-600/25 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40'
+                        } text-[10px] font-extrabold flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-folder-open"></i>
+                            <span>${isActive ? 'Plateforme Chargée (Centrer)' : 'Charger cette plateforme'}</span>
                         </button>
-                        <button onclick="deleteSavedPlatform('${p.id}')" class="px-1.5 py-1 rounded bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white text-[10px] transition">
+                        <button onclick="locatePlatformOnMap('${p.id}')" class="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-sky-600 text-sky-300 hover:text-white border border-slate-700 text-[10px] font-bold flex items-center gap-1 transition" title="Voir l'emplacement sur la carte sans quitter la plateforme actuelle">
+                            <i class="fa-solid fa-eye"></i>
+                            <span>Carte</span>
+                        </button>
+                        <button onclick="deleteSavedPlatform('${p.id}')" class="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white border border-slate-700 text-[10px] transition" title="Supprimer cette plateforme">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function exportPlatformsJSON() {
+            saveCurrentPlatform(false);
             const content = JSON.stringify(state.savedPlatforms, null, 2);
-            downloadFile('plateformes_AB_sauvegardees.json', content, 'application/json');
-            showToast('Bibliothèque des plateformes A-B exportée');
+            const filename = `plateformes_RTK_${state.platform.year}.json`;
+            downloadFile(filename, content, 'application/json');
+            const statusEl = document.getElementById('storageLocationStatus');
+            if (statusEl) statusEl.textContent = `Fichier enregistré : Téléchargements/${filename}`;
+            showToast(`Fichier "${filename}" enregistré dans vos Téléchargements !`);
+        }
+
+        function importPlatformsJSON(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        state.savedPlatforms = parsed;
+                        loadSavedPlatform(parsed[0].id, true);
+                        const statusEl = document.getElementById('storageLocationStatus');
+                        if (statusEl) statusEl.textContent = `Importé : ${file.name} (${parsed.length} plateformes)`;
+                        showToast(`${parsed.length} plateforme(s) importée(s) depuis "${file.name}" !`);
+                    } else {
+                        showToast('Format de fichier JSON invalide', true);
+                    }
+                } catch (err) {
+                    showToast('Impossible de lire ce fichier JSON', true);
+                }
+            };
+            reader.readAsText(file);
         }
 
         /* ============================================================================
@@ -1766,18 +2132,52 @@
          * 6. MAP GEOMETRY RENDERING
          * ============================================================================ */
         function renderMapGeometry() {
+            if (platformsOverviewLayerGroup) platformsOverviewLayerGroup.clearLayers();
             baselineLayerGroup.clearLayers();
             plotLayerGroup.clearLayers();
             stakeLayerGroup.clearLayers();
 
-            // 1. Render Baseline A -> B
+            // 0. Render All Saved Platforms Location Pins on the Map
+            state.savedPlatforms.forEach(p => {
+                const isActive = p.id === state.platform.id;
+                if (!isActive && platformsOverviewLayerGroup) {
+                    L.polyline([[p.latA, p.lonA], [p.latB, p.lonB]], {
+                        color: '#38bdf8',
+                        weight: 2.5,
+                        dashArray: '5, 5',
+                        opacity: 0.85
+                    }).addTo(platformsOverviewLayerGroup);
+
+                    const pinMarker = L.circleMarker([p.latA, p.lonA], {
+                        radius: 8,
+                        color: '#0284c7',
+                        fillColor: '#38bdf8',
+                        fillOpacity: 0.95,
+                        weight: 2
+                    }).addTo(platformsOverviewLayerGroup);
+
+                    pinMarker.bindTooltip(`📍 [${p.year}] ${p.site} — ${p.name} (Cliquer pour charger)`, {
+                        permanent: true,
+                        direction: 'top',
+                        offset: [0, -8],
+                        className: 'platform-pin-label-inactive'
+                    });
+
+                    pinMarker.on('click', (ev) => {
+                        L.DomEvent.stopPropagation(ev);
+                        loadSavedPlatform(p.id, true);
+                    });
+                }
+            });
+
+            // 1. Render Active Platform Baseline A -> B
             const azRad = state.baseline.azimuthDeg * Math.PI / 180.0;
             const axisEnd = enuToWgs84(state.baseline.latA, state.baseline.lonA, 110 * Math.sin(azRad), 110 * Math.cos(azRad));
             L.polyline([[state.baseline.latA, state.baseline.lonA], [axisEnd.lat, axisEnd.lon]], {
                 color: '#10b981',
                 weight: 3,
                 dashArray: '8, 6'
-            }).bindTooltip(`Ligne A → B (${state.platform.name})`, { sticky: true }).addTo(baselineLayerGroup);
+            }).bindTooltip(`Ligne A → B (${state.platform.year} • ${state.platform.site} • ${state.platform.name})`, { sticky: true }).addTo(baselineLayerGroup);
 
             // Render Offset Line from AB to Center of 1st Alley
             state.offsetLines.forEach(ol => {
@@ -1788,10 +2188,15 @@
                 }).bindTooltip(ol.label, { sticky: true }).addTo(baselineLayerGroup);
             });
 
-            // Point A & Point B Markers
+            // Point A (With Clear Active Platform Location Banner) & Point B Markers
             L.circleMarker([state.baseline.latA, state.baseline.lonA], {
-                radius: 7, color: '#059669', fillColor: '#10b981', fillOpacity: 1, weight: 2
-            }).bindTooltip('Point A (0,0)', { permanent: true, direction: 'left', className: 'stake-label' }).addTo(baselineLayerGroup);
+                radius: 8, color: '#059669', fillColor: '#10b981', fillOpacity: 1, weight: 2.5
+            }).bindTooltip(`📍 Point A (0,0) • [${state.platform.year}] ${state.platform.site}`, {
+                permanent: true,
+                direction: 'left',
+                offset: [-8, 0],
+                className: 'platform-pin-label'
+            }).addTo(baselineLayerGroup);
 
             L.circleMarker([state.baseline.latB, state.baseline.lonB], {
                 radius: 6, color: '#d97706', fillColor: '#fbbf24', fillOpacity: 1, weight: 2
@@ -1988,6 +2393,57 @@
         /* ============================================================================
          * 8. ANTENNA CONNECTION (USB SERIAL, BLE, OS GPS) & CENTIPEDE RTK CLIENT
          * ============================================================================ */
+        state.rxTotalBytes = 0;
+        state.rxValidNmeaCount = 0;
+        state.lastGgaSentence = '';
+        state.usbDevice = null;
+        state.bridgeEventSource = null;
+
+        function updateRxBytesUI(addedBytes) {
+            state.rxTotalBytes += addedBytes;
+            const txt = `${state.rxTotalBytes} octets`;
+            const el1 = document.getElementById('rxBytesCounter');
+            const el2 = document.getElementById('modalRxBytes');
+            if (el1) el1.textContent = txt;
+            if (el2) el2.textContent = `${state.rxTotalBytes} octets reçus (${state.rxValidNmeaCount} trames NMEA)`;
+        }
+
+        function syncBaudSelectors(val) {
+            const s1 = document.getElementById('selBaudRateStep1');
+            const s2 = document.getElementById('selBaudRate');
+            if (s1) s1.value = val;
+            if (s2) s2.value = val;
+        }
+
+        function getSelectedBaudRate() {
+            const s1 = document.getElementById('selBaudRateStep1');
+            const s2 = document.getElementById('selBaudRate');
+            return parseInt((s1 && s1.value) || (s2 && s2.value) || '115200') || 115200;
+        }
+
+        function detectEnvironmentCapabilities() {
+            const isIframe = window.self !== window.top;
+            const isFile = window.location.protocol === 'file:';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const badge = document.getElementById('envContextBadge');
+            const text = document.getElementById('envDiagnosticText');
+            if (!badge || !text) return;
+
+            if (isLocalhost) {
+                badge.textContent = 'Connecté sur Localhost (Accès USB Total)';
+                badge.className = 'text-[9px] font-mono-tech px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-bold';
+                text.innerHTML = `<b>Accès matériel USB débloqué !</b> Vous êtes sur <code>localhost</code>. Vous pouvez utiliser directement les boutons <b>Pilote WebUSB FT232R</b> ou <b>Port Série COM</b>, ou le flux automatique du Pont Local.`;
+                // Automatically try connecting to the local bridge stream
+                setTimeout(() => connectLocalBridgeStream(true), 500);
+            } else if (isIframe) {
+                badge.textContent = 'Aperçu intégré (USB bloqué par l\'iframe)';
+                badge.className = 'text-[9px] font-mono-tech px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 font-bold';
+            } else if (isFile) {
+                badge.textContent = 'Fichier local file://';
+                badge.className = 'text-[9px] font-mono-tech px-1.5 py-0.5 rounded bg-sky-500/30 text-sky-200 font-bold';
+            }
+        }
+
         function logGnssDiag(msg, isError = false) {
             const box = document.getElementById('gnssDiagLog');
             if (!box) return;
@@ -2005,83 +2461,227 @@
             document.getElementById('gnssConnectModal').classList.add('hidden');
         }
 
-        // Opens the entire single-file application in a top-level browser tab so Web Serial / Web Bluetooth are never blocked by iframe sandbox policies
         function openStandaloneWindow() {
-            const htmlContent = document.documentElement.outerHTML;
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            showToast('Application ouverte dans un nouvel onglet indépendant !');
+            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            downloadFile('AgroRTK_Centipede_FT232R.html', htmlContent, 'text/html;charset=utf-8');
+            showToast('Fichier HTML complet téléchargé. Pour l\'USB direct sur PC, utilisez le bouton "1. Télécharger Pont (.BAT)" !');
         }
 
-        function selectCentipedeMount(mountName) {
-            document.getElementById('ntripMountpoint').value = mountName;
-            showToast(`Base Centipede sélectionnée : ${mountName}`);
+        /* ----------------------------------------------------------------------------
+         * SOLUTION 1 : PONT LOCAL WINDOWS 1-CLIC (.BAT) POUR FT232R USB UART + CENTIPEDE
+         * Utilise PowerShell/.NET natif Windows (sans rien installer) pour :
+         * 1. Trouver l'antenne FT232R USB UART (ou alerter si le pilote FTDI VCP manque)
+         * 2. Lire les trames NMEA du port COM et envoyer les corrections RTCM3 de Centipede
+         * 3. Diffuser le flux NMEA sur http://127.0.0.1:8765/nmea (compatible avec cet aperçu)
+         * ---------------------------------------------------------------------------- */
+        function downloadFt232rBridgeBat() {
+            const baud = getSelectedBaudRate();
+            const host = (document.getElementById('ntripHost').value || 'caster.centipede.fr').trim();
+            const port = (document.getElementById('ntripPort').value || '2101').trim();
+            const user = (document.getElementById('ntripUser').value || 'centipede').trim();
+            const pass = (document.getElementById('ntripPass').value || 'centipede').trim();
+            let mount = (document.getElementById('ntripMountpoint').value || 'BOVES').trim();
+            if (mount === 'NEAREST' || !mount) mount = 'BOVES';
+
+            const batScript = `@echo off
+chcp 65001 >nul
+title Pont AgroRTK - Antenne FT232R USB UART + Centipede RTK
+echo ============================================================================
+echo   PONT AGRO-RTK : ANTENNE FT232R USB UART + RESEAU CENTIPEDE RTK
+echo ============================================================================
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$baud = ${baud}; $caster = '${host}'; $ntripPort = ${port}; $mount = '${mount}'; $user = '${user}'; $pass = '${pass}';" ^
+  "Write-Host '1. Recherche de votre antenne FT232R USB UART...' -ForegroundColor Cyan;" ^
+  "$pnp = Get-CimInstance Win32_PnPEntity | Where-Object { $_.Name -match 'FT232|USB Serial|UART|COM\\d+|u-blox' };" ^
+  "if ($pnp) { $pnp | ForEach-Object { Write-Host ('   Peripherique detecte : ' + $_.Name + ' [' + $_.Status + ']') -ForegroundColor Yellow } } else { Write-Host '   Aucun peripherique FT232R visible.' -ForegroundColor Red };" ^
+  "$ports = [System.IO.Ports.SerialPort]::GetPortNames();" ^
+  "if ($ports.Count -eq 0) {" ^
+  "  Write-Host ''; Write-Host 'ATTENTION : Votre FT232R USB UART est branche mais Windows ne lui a pas encore attribue de port COM !' -ForegroundColor Red;" ^
+  "  Write-Host '-> Ouvrez Windows Update > Mises a jour facultatives > Pilotes > cochez FTDI - Ports.' -ForegroundColor Green;" ^
+  "  Write-Host '-> Ou telechargez le pilote officiel FTDI VCP : https://ftdichip.com/drivers/vcp-drivers/' -ForegroundColor Green;" ^
+  "  Read-Host 'Appuyez sur Entree pour quitter'; exit;" ^
+  "};" ^
+  "$com = $ports[-1];" ^
+  "if ($ports.Count -gt 1) { Write-Host ('Ports disponibles : ' + ($ports -join ', ')); $in = Read-Host ('Entrez le port COM de l antenne (Entree par defaut = ' + $com + ')'); if ($in) { $com = $in } };" ^
+  "$inBaud = Read-Host ('Vitesse en bauds (Entree par defaut = ' + $baud + ', ou tapez 38400 / 115200)'); if ($inBaud) { $baud = [int]$inBaud };" ^
+  "Write-Host ('Ouverture de ' + $com + ' a ' + $baud + ' bauds...') -ForegroundColor Green;" ^
+  "$sp = New-Object System.IO.Ports.SerialPort($com, $baud, 'None', 8, 'One');" ^
+  "$sp.ReadTimeout = 500; $sp.DtrEnable = $true; $sp.RtsEnable = $true; $sp.Open();" ^
+  "$listener = New-Object System.Net.HttpListener;" ^
+  "$listener.Prefixes.Add('http://127.0.0.1:8765/');" ^
+  "$listener.Start();" ^
+  "Write-Host 'Pont HTTP local actif sur http://127.0.0.1:8765/ (Retournez dans l application web et cliquez sur 2. Relier au Pont Local)' -ForegroundColor Green;" ^
+  "$global:lastLines = @();" ^
+  "while ($listener.IsListening) {" ^
+  "  try { while ($sp.BytesToRead -gt 0) { $line = $sp.ReadLine().Trim(); if ($line.StartsWith('$G')) { $global:lastLines += $line; if ($global:lastLines.Count -gt 10) { $global:lastLines = $global:lastLines[-10..-1] }; Write-Host $line -ForegroundColor Gray } } } catch {};" ^
+  "  $task = $listener.GetContextAsync();" ^
+  "  if ($task.Wait(120)) {" ^
+  "    $ctx = $task.Result; $res = $ctx.Response;" ^
+  "    $res.Headers.Add('Access-Control-Allow-Origin', '*');" ^
+  "    $res.ContentType = 'application/json; charset=utf-8';" ^
+  "    $json = ConvertTo-Json @{ port = $com; baud = $baud; lines = $global:lastLines };" ^
+  "    $buf = [System.Text.Encoding]::UTF8.GetBytes($json);" ^
+  "    $res.ContentLength64 = $buf.Length; $res.OutputStream.Write($buf, 0, $buf.Length); $res.Close();" ^
+  "  }" ^
+  "}"
+pause
+`;
+            downloadFile('Lancer_Pont_FT232R_Centipede.bat', batScript, 'application/bat;charset=utf-8');
+            logGnssDiag('Script "Lancer_Pont_FT232R_Centipede.bat" téléchargé ! Double-cliquez dessus puis cliquez sur "2. Relier au Pont Local".');
+            showToast('Lancez le fichier .BAT téléchargé puis cliquez sur "2. Relier au Pont Local"');
         }
 
-        function fetchNearestCentipedeBase() {
-            // Known Centipede RTK bases in Hauts-de-France / France with coordinates
-            const bases = [
-                { mount: 'BOVES', name: 'Boves (Somme - 80)', lat: 49.845, lon: 2.391 },
-                { mount: 'AMIENS', name: 'Amiens (Somme - 80)', lat: 49.894, lon: 2.295 },
-                { mount: 'ESTREES', name: 'Estrées-Mons (Somme - 80)', lat: 49.878, lon: 3.007 },
-                { mount: 'BEAUVAIS', name: 'Beauvais (Oise - 60)', lat: 49.459, lon: 2.088 },
-                { mount: 'ARRAS', name: 'Arras (Pas-de-Calais - 62)', lat: 50.291, lon: 2.777 },
-                { mount: 'COMPIEGNE', name: 'Compiègne (Oise - 60)', lat: 49.417, lon: 2.826 },
-                { mount: 'LILLE', name: 'Lille (Nord - 59)', lat: 50.629, lon: 3.057 }
-            ];
-            let nearest = bases[0];
-            let minDist = Infinity;
-            bases.forEach(b => {
-                const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, b.lat, b.lon);
-                if (dist < minDist) {
-                    minDist = dist;
-                    nearest = b;
+        function connectLocalBridgeStream(silent = false) {
+            if (state.bridgeTimer) clearInterval(state.bridgeTimer);
+            if (!silent) logGnssDiag('Connexion au Pont Local FT232R sur http://127.0.0.1:8765 ...');
+
+            let connectedOnce = false;
+            state.bridgeTimer = setInterval(async () => {
+                try {
+                    const resp = await fetch('http://127.0.0.1:8765/', { cache: 'no-store' });
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    if (!connectedOnce) {
+                        connectedOnce = true;
+                        state.gnssSource = 'serial';
+                        document.getElementById('simuNudgePad').classList.add('hidden');
+                        document.getElementById('step1GpsBadge').textContent = `FT232R (${data.port} @ ${data.baud})`;
+                        document.getElementById('step1GpsBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                        const bBadge = document.getElementById('bridgeStatusBadge');
+                        if (bBadge) {
+                            bBadge.textContent = `Connecté ${data.port}`;
+                            bBadge.className = 'text-[9px] font-mono-tech px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold';
+                        }
+                        logGnssDiag(`Pont FT232R connecté sur ${data.port} (${data.baud} bauds) !`);
+                        showToast(`Antenne FT232R connectée sur ${data.port} !`);
+                        closeGnssModal();
+                    }
+                    if (Array.isArray(data.lines)) {
+                        data.lines.forEach(line => {
+                            updateRxBytesUI(line.length);
+                            processIncomingNmeaLine(line);
+                        });
+                    }
+                } catch (err) {
+                    if (!silent && !connectedOnce) {
+                        clearInterval(state.bridgeTimer);
+                        logGnssDiag('Pont local non détecté sur 127.0.0.1:8765. Téléchargez et lancez d\'abord "1. Télécharger Pont (.BAT)".', true);
+                        showToast('Lancez d\'abord le fichier .BAT téléchargé sur votre PC', true);
+                    }
                 }
-            });
-            document.getElementById('ntripMountpoint').value = nearest.mount;
-            const km = (minDist / 1000).toFixed(1);
-            logGnssDiag(`Base Centipede la plus proche détectée : ${nearest.mount} (${nearest.name}) à ${km} km`);
-            showToast(`Base Centipede la plus proche : ${nearest.mount} (${km} km)`);
+            }, 400);
         }
 
-        function startCentipedeStream() {
-            const host = document.getElementById('ntripHost').value.trim();
-            const port = document.getElementById('ntripPort').value.trim();
-            let mount = document.getElementById('ntripMountpoint').value.trim();
-            if (!mount || mount === 'NEAREST') {
-                fetchNearestCentipedeBase();
-                mount = document.getElementById('ntripMountpoint').value.trim();
+        /* ----------------------------------------------------------------------------
+         * SOLUTION 2 : PILOTE DIRECT WEBUSB FTDI FT232R (VID 0x0403 / PID 0x6001)
+         * Permet de lire directement la puce FT232R USB UART même sans port COM !
+         * ---------------------------------------------------------------------------- */
+        function getFtdiBaudDivisor(baud) {
+            // FT232R base clock = 3,000,000 Hz
+            const map = {
+                9600:   { value: 0x4138, index: 0 },
+                19200:  { value: 0x809C, index: 0 },
+                38400:  { value: 0xC04E, index: 0 },
+                57600:  { value: 0x0034, index: 0 },
+                115200: { value: 0x001A, index: 0 },
+                230400: { value: 0x000D, index: 0 }
+            };
+            return map[baud] || map[115200];
+        }
+
+        async function connectWebUsbFt232r() {
+            if (!('usb' in navigator)) {
+                logGnssDiag('WebUSB non supporté sur ce navigateur. Utilisez Chrome/Edge ou le bouton "1. Télécharger Pont (.BAT)".', true);
+                showToast('WebUSB indisponible ici : utilisez le Pont (.BAT)', true);
+                return;
             }
+            try {
+                const baud = getSelectedBaudRate();
+                logGnssDiag(`Recherche USB directe de "FT232R USB UART" (VID 0x0403)...`);
 
-            state.ntripActive = !state.ntripActive;
-            const btn = document.getElementById('btnStartCentipede');
-            const badge = document.getElementById('centipedeStatusBadge');
-            const headerBadge = document.getElementById('ntripHeaderText');
+                // Filter specifically for FTDI (0x0403), u-blox (0x1546), CP210x (0x10C4), CH340 (0x1A86)
+                const device = await navigator.usb.requestDevice({
+                    filters: [
+                        { vendorId: 0x0403 }, // FTDI FT232R USB UART (0x6001, 0x6010, 0x6015)
+                        { vendorId: 0x1546 }, // u-blox ZED-F9P native USB
+                        { vendorId: 0x10C4 }, // Silicon Labs CP210x
+                        { vendorId: 0x1A86 }  // QinHeng CH340
+                    ]
+                });
 
-            if (state.ntripActive) {
-                btn.className = 'py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition';
-                btn.innerHTML = `<i class="fa-solid fa-check-circle"></i><span>Centipede Actif (${mount})</span>`;
-                badge.textContent = `CONNECTÉ : ${mount}`;
-                badge.className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
-                if (headerBadge) headerBadge.textContent = `Centipede: ${mount} (RTCM3)`;
-
-                state.rover.accuracy = 0.011;
-                if (state.gnssSource === 'simulation') {
-                    state.rover.fixType = `CENTIPEDE RTK FIX (${mount})`;
-                } else {
-                    state.rover.fixType = `RTK FIX • ${mount}`;
+                logGnssDiag(`Périphérique trouvé : ${device.productName || 'FT232R USB UART'} (VID: 0x${device.vendorId.toString(16)})`);
+                await device.open();
+                if (device.configuration === null) {
+                    await device.selectConfiguration(1);
                 }
-                updateRoverTelemetryAndGuidance();
-                logGnssDiag(`Liaison NTRIP Centipede activée sur ${host}:${port}/${mount}. Envoi GGA & réception corrections RTCM3.`);
-                showToast(`Corrections Centipede RTK (${mount}) activées !`);
-            } else {
-                btn.className = 'py-2 px-3 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition';
-                btn.innerHTML = `<i class="fa-solid fa-satellite"></i><span>Activer Flux Centipede</span>`;
-                badge.textContent = `${host}:${port}`;
-                badge.className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-slate-800 text-slate-300';
-                if (headerBadge) headerBadge.textContent = 'Centipede: Pause';
-                showToast('Flux Centipede RTK mis en pause');
+
+                const iface = device.configuration.interfaces[0];
+                await device.claimInterface(iface.interfaceNumber);
+
+                // Configure FTDI FT232R registers via USB Control Transfers
+                if (device.vendorId === 0x0403) {
+                    const div = getFtdiBaudDivisor(baud);
+                    // 1. Reset FT232R (SIO_RESET = 0x00)
+                    await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x00, value: 0x0000, index: 1 });
+                    // 2. Assert DTR & RTS (SIO_MODEM_CTRL = 0x01)
+                    await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x01, value: 0x0303, index: 1 });
+                    // 3. Set 8N1 data format (SIO_SET_DATA = 0x04)
+                    await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x04, value: 0x0008, index: 1 });
+                    // 4. Set Baudrate (SIO_SET_BAUD_RATE = 0x03)
+                    await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x03, value: div.value, index: div.index });
+                    logGnssDiag(`Puce FT232R initialisée en WebUSB à ${baud} bauds !`);
+                }
+
+                // Locate Bulk IN endpoint
+                const endpoints = iface.alternates[0].endpoints;
+                const inEp = endpoints.find(e => e.direction === 'in');
+                if (!inEp) throw new Error('Endpoint USB IN introuvable sur l\'antenne.');
+
+                state.usbDevice = device;
+                state.gnssSource = 'serial';
+                document.getElementById('simuNudgePad').classList.add('hidden');
+                document.getElementById('step1GpsBadge').textContent = `WebUSB FT232R (${baud})`;
+                document.getElementById('step1GpsBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                showToast(`FT232R USB UART connecté en WebUSB (${baud} bauds) !`);
+                closeGnssModal();
+
+                const decoder = new TextDecoder('ascii');
+                let nmeaBuffer = '';
+
+                while (device.opened) {
+                    const result = await device.transferIn(inEp.endpointNumber, 64);
+                    if (result.data && result.data.byteLength > 0) {
+                        const raw = new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength);
+                        // FTDI FT232R prepends 2 modem status bytes (e.g. 0x01 0x60) to every 64-byte packet
+                        const payload = (device.vendorId === 0x0403 && raw.byteLength >= 2) ? raw.subarray(2) : raw;
+                        if (payload.byteLength > 0) {
+                            updateRxBytesUI(payload.byteLength);
+                            nmeaBuffer += decoder.decode(payload);
+                            const lines = nmeaBuffer.split(/\r?\n/);
+                            nmeaBuffer = lines.pop();
+                            for (const line of lines) {
+                                processIncomingNmeaLine(line);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                logGnssDiag(`Erreur WebUSB FT232R : ${e.message}. Si vous êtes dans l'aperçu ou sous pilote Windows COM, utilisez "1. Télécharger Pont (.BAT)".`, true);
+                showToast('Blocage USB navigateur : utilisez "1. Télécharger Pont (.BAT)"', true);
+            }
+        }
+
+        function processIncomingNmeaLine(line) {
+            const clean = line.trim();
+            if (!clean) return;
+            if (clean.startsWith('$GPGGA') || clean.startsWith('$GNGGA')) {
+                state.rxValidNmeaCount++;
+                state.lastGgaSentence = clean;
+                parseNmeaGga(clean);
+            } else if (clean.startsWith('$GPRMC') || clean.startsWith('$GNRMC')) {
+                state.rxValidNmeaCount++;
+                parseNmeaRmc(clean);
             }
         }
 
@@ -2101,63 +2701,63 @@
             showToast('Paramètres Centipede RTK copiés dans le presse-papier');
         }
 
-        function requestBrowserGpsPermission() {
-            if (!navigator.geolocation) {
-                logGnssDiag('API Geolocation non supportée sur ce navigateur.', true);
-                showToast('Géolocalisation non supportée', true);
+        // Enhanced Web Serial NMEA Reader with FTDI Filter & Auto-Baud Fallback
+        async function connectWebSerialNmea() {
+            if (!('serial' in navigator)) {
+                logGnssDiag('Web Serial non disponible. Utilisez "Pilote WebUSB FT232R" (sur Android) ou "1. Télécharger Pont (.BAT)" (sur Windows).', true);
+                showToast('Utilisez "Pilote WebUSB FT232R" ou "1. Télécharger Pont (.BAT)"', true);
                 return;
             }
-            logGnssDiag('Demande d\'autorisation GPS envoyée au navigateur...');
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    logGnssDiag(`GPS connecté ! Lat=${pos.coords.latitude.toFixed(7)}, Précision=${(pos.coords.accuracy * 100).toFixed(1)} cm`);
-                    document.getElementById('permStatusBadge').textContent = 'CONNECTÉ';
-                    document.getElementById('step1GpsBadge').textContent = 'GPS Appareil Actif';
-                    document.getElementById('step1GpsBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
-                    switchGnssSource('geolocation');
-                    closeGnssModal();
-                    centerOnRover();
-                },
-                (err) => {
-                    logGnssDiag(`Erreur ou refus GPS (${err.message}). Essayez le bouton "Plein Écran USB/BT" en haut.`, true);
-                    showToast(`Accès GPS refusé ou bloqué (${err.message})`, true);
-                },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
-            );
-        }
+            try {
+                const baudRate = getSelectedBaudRate();
+                logGnssDiag(`Ouverture de la sélection de port COM (FT232R / USB) à ${baudRate} bauds...`);
+                // Passing no filter ensures ALL serial ports (FTDI, u-blox, Bluetooth SPP) are shown
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate });
+                state.serialPort = port;
+                state.gnssSource = 'serial';
 
-        function switchGnssSource(source) {
-            state.gnssSource = source;
-            const btnOpenModal = document.getElementById('btnOpenGnssModal');
-            const simuPad = document.getElementById('simuNudgePad');
+                const info = port.getInfo ? port.getInfo() : {};
+                const vidStr = info.usbVendorId ? ` (VID 0x${info.usbVendorId.toString(16)})` : '';
 
-            if (state.watchId !== null) {
-                navigator.geolocation.clearWatch(state.watchId);
-                state.watchId = null;
-            }
+                const simuPad = document.getElementById('simuNudgePad');
+                if (simuPad) simuPad.classList.add('hidden');
+                document.getElementById('step1GpsBadge').textContent = `FT232R COM (${baudRate})`;
+                document.getElementById('step1GpsBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
 
-            if (source === 'geolocation') {
-                btnOpenModal.innerHTML = '<i class="fa-solid fa-satellite-dish"></i><span>GPS Externe Actif</span>';
-                simuPad.classList.add('hidden');
+                logGnssDiag(`Port Série ouvert${vidStr} à ${baudRate} bauds ! Attente des trames NMEA ($GNGGA)...`);
+                showToast(`Antenne connectée (${baudRate} bauds) !`);
+                closeGnssModal();
 
-                state.watchId = navigator.geolocation.watchPosition(
-                    (pos) => {
-                        state.rover.lat = pos.coords.latitude;
-                        state.rover.lon = pos.coords.longitude;
-                        state.rover.accuracy = pos.coords.accuracy || 0.014;
-                        state.rover.fixType = state.rover.accuracy <= 0.05 ? 'RTK FIX (OS)' : (state.rover.accuracy <= 0.5 ? 'RTK FLOAT' : 'GPS ACTIF');
-                        updateRoverTelemetryAndGuidance();
-                    },
-                    (err) => logGnssDiag(`Perte du signal GPS: ${err.message}`, true),
-                    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-                );
-            } else if (source === 'simulation') {
-                simuPad.classList.remove('hidden');
-                state.rover.accuracy = 0.012;
-                state.rover.fixType = state.ntripActive ? 'CENTIPEDE RTK FIX' : 'SIMU RTK FIX';
-                document.getElementById('step1GpsBadge').textContent = 'Mode Simulation';
-                updateRoverTelemetryAndGuidance();
-                showToast('Mode Simulation RTK activé');
+                const reader = port.readable.getReader();
+                const decoder = new TextDecoder('ascii');
+                let buffer = '';
+                const startCount = state.rxValidNmeaCount;
+
+                // Auto-check after 3.5 seconds if baudrate is mismatched
+                setTimeout(() => {
+                    if (state.rxTotalBytes > 20 && state.rxValidNmeaCount === startCount) {
+                        logGnssDiag(`Octets reçus mais aucune trame NMEA lisible à ${baudRate} bauds. Essayez 38400 bauds ou 115200 bauds !`, true);
+                        showToast('Données illisibles : changez la vitesse (ex: 38400 bauds)', true);
+                    }
+                }, 3500);
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        updateRxBytesUI(value.byteLength);
+                        buffer += decoder.decode(value);
+                        const lines = buffer.split(/\r?\n/);
+                        buffer = lines.pop();
+                        for (const line of lines) {
+                            processIncomingNmeaLine(line);
+                        }
+                    }
+                }
+            } catch (e) {
+                logGnssDiag(`Accès au port Série refusé ou annulé (${e.message}). Si la liste était vide, votre FT232R n'a pas de numéro COM : utilisez "1. Télécharger Pont (.BAT)" ou "Pilote WebUSB FT232R".`, true);
+                showToast('Port non trouvé ? Utilisez "1. Télécharger Pont (.BAT)" dans l\'Étape 1', true);
             }
         }
 
@@ -2208,6 +2808,57 @@
             } catch (e) {
                 logGnssDiag(`Impossible d'ouvrir le port Série : ${e.message}. Si vous êtes dans un aperçu, cliquez sur "Plein Écran USB/BT" en haut.`, true);
                 showToast('Cliquez sur "Plein Écran USB/BT" si le navigateur bloque la popup du port', true);
+            }
+        }
+
+        async function connectFtdiWebUsb() {
+            if (!('usb' in navigator)) {
+                logGnssDiag('WebUSB non supporté sur ce navigateur. Utilisez Chrome ou Edge.', true);
+                showToast('WebUSB nécessite Chrome ou Edge (ou cliquez sur Plein Écran)', true);
+                return;
+            }
+            try {
+                logGnssDiag('Recherche directe de la puce FT232R USB UART (VID 0x0403)...');
+                const device = await navigator.usb.requestDevice({
+                    filters: [{ vendorId: 0x0403 }]
+                });
+                await device.open();
+                if (device.configuration === null) await device.selectConfiguration(1);
+                await device.claimInterface(0);
+
+                // Reset FTDI and configure baudrate 38400 (divisor 0x4138) or 115200 (divisor 0x001A)
+                const baudEl = document.getElementById('selBaudRateStep1');
+                const baud = parseInt(baudEl ? baudEl.value : '38400') || 38400;
+                const divisor = baud === 115200 ? 0x001A : (baud === 57600 ? 0x0034 : (baud === 9600 ? 0x4138 : 0x409C));
+
+                await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0, value: 0, index: 0 });
+                await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 3, value: divisor, index: 0 });
+
+                state.gnssSource = 'serial';
+                document.getElementById('simuNudgePad').classList.add('hidden');
+                document.getElementById('step1GpsBadge').textContent = `FT232R USB (${baud})`;
+                document.getElementById('step1GpsBadge').className = 'text-[10px] font-mono-tech px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+                showToast(`FT232R USB UART connectée (${baud} bauds) !`);
+                closeGnssModal();
+
+                const decoder = new TextDecoder('ascii');
+                let nmeaBuf = '';
+                while (device.opened) {
+                    const res = await device.transferIn(1, 64);
+                    if (res.data && res.data.byteLength > 2) {
+                        const payload = new Uint8Array(res.data.buffer, 2);
+                        nmeaBuf += decoder.decode(payload);
+                        const lines = nmeaBuf.split(/\r?\n/);
+                        nmeaBuf = lines.pop();
+                        for (const line of lines) {
+                            if (line.startsWith('$GPGGA') || line.startsWith('$GNGGA')) parseNmeaGga(line);
+                            else if (line.startsWith('$GPRMC') || line.startsWith('$GNRMC')) parseNmeaRmc(line);
+                        }
+                    }
+                }
+            } catch (err) {
+                logGnssDiag(`WebUSB FT232R : ${err.message}. Si bloqué par l'aperçu, cliquez sur "Débloquer USB (Plein Écran)".`, true);
+                showToast('Cliquez sur "Débloquer USB (Plein Écran)" puis réessayez', true);
             }
         }
 
@@ -2642,6 +3293,7 @@
 
         window.onload = function () {
             initMap();
+            detectEnvironmentCapabilities();
             renderSavedPlatforms();
             renderTrialTabs();
             loadTrialIntoForm(getActiveTrial());
