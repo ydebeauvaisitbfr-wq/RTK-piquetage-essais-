@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AgroRTK & Topo — Piquetage d'Essais Centimétrique</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS for Interactive GIS Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Google Fonts: Inter & JetBrains Mono for telemetry -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+            user-select: none;
+        }
+        .font-mono-tech {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar for stake lists */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Map container full height */
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #0b1120;
+            z-index: 1;
+        }
+        /* Custom map markers */
+        .stake-label {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: #f8fafc;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .stake-label-active {
+            background: #f59e0b;
+            color: #0f172a;
+            border-color: #fef08a;
+            font-size: 11px;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.9; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+        .rtk-pulse {
+            animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden flex flex-col">
+
+    <!-- TOP TELEMETRY & GNSS STATUS BAR -->
+    <header class="bg-slate-900/95 border-b border-slate-800 px-3 py-2 flex flex-wrap items-center justify-between gap-2 z-30 shrink-0">
+        <!-- Brand & Mode -->
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-inner">
+                <i class="fa-solid fa-satellite-dish text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-bold text-sm sm:text-base tracking-tight text-white">RTK Piquetage <span class="text-emerald-400 font-extrabold">PRO</span></h1>
+                    <span id="fixBadge" class="px-2 py-0.5 text-[11px] font-mono-tech font-extrabold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        SIMU RTK FIX
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Implantation d'essais agronomiques & topographie centimétrique</p>
+            </div>
+        </div>
+
+        <!-- Live Telemetry Readout -->
+        <div class="flex items-center gap-2 sm:gap-4 bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+            <div class="text-center border-r border-slate-800 pr-2.5 sm:pr-4">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Précision XY</div>
+                <div id="uiAccuracy" class="font-mono-tech text-xs sm:text-sm font-extrabold text-emerald-400">± 1.2 cm</div>
+            </div>
+            <div class="hidden md:block border-r border-slate-800 pr-4">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">WGS84 (Lat / Lon)</div>
+                <div id="uiWgs84" class="font-mono-tech text-xs text-slate-200">49.8735000° N, 2.3312000° E</div>
+            </div>
+            <div class="hidden lg:block border-r border-slate-800 pr-4">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Lambert 93 (X / Y)</div>
+                <div id="uiLambert" class="font-mono-tech text-xs text-amber-300">X: 651894.12m Y: 6975241.85m</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Sats / HDOP</div>
+                <div id="uiSats" class="font-mono-tech text-xs text-slate-300">24 <span class="text-slate-500">|</span> 0.6</div>
+            </div>
+        </div>
+
+        <!-- GPS Source Controls & Audio Toggle -->
+        <div class="flex items-center gap-1.5">
+            <button id="btnSourceGps" onclick="switchGnssSource('geolocation')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5" title="Utiliser le GPS de l'appareil (ou Mock Location Android/iOS de l'antenne externe)">
+                <i class="fa-solid fa-location-crosshairs text-emerald-400"></i>
+                <span class="hidden sm:inline">GPS Externe (OS)</span>
+            </button>
+            <button id="btnSourceSerial" onclick="connectWebSerialNmea()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5" title="Lire directement le flux NMEA 0183 ($GNGGA) via USB / Bluetooth COM">
+                <i class="fa-brands fa-usb text-sky-400"></i>
+                <span class="hidden md:inline">NMEA Série</span>
+            </button>
+            <button id="btnSourceSimu" onclick="switchGnssSource('simulation')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white border border-emerald-400 transition flex items-center gap-1.5" title="Mode simulation au bureau pour préparer ou tester vos piquetages">
+                <i class="fa-solid fa-gamepad"></i>
+                <span class="hidden sm:inline">Simu</span>
+            </button>
+            <button id="btnAudioToggle" onclick="toggleAudioBeep()" class="p-2 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Activer/Désactiver le bip sonore d'approche centimétrique">
+                <i id="iconAudio" class="fa-solid fa-volume-xmark"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+        <!-- LEFT / CENTER AREA: MAP & CENTIMETER BULLSEYE RADAR -->
+        <div class="flex-1 relative flex flex-col overflow-hidden">
+            <!-- Map Container -->
+            <div id="map" class="flex-1"></div>
+
+            <!-- Floating Map Overlay Controls (Top Left) -->
+            <div class="absolute top-3 left-3 z-20 flex flex-col gap-2">
+                <div class="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1.5 flex flex-col gap-1 shadow-xl">
+                    <button onclick="centerOnRover()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Centrer sur mon antenne GPS">
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </button>
+                    <button onclick="fitTrialBounds()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-amber-500 text-slate-200 hover:text-slate-950 transition flex items-center justify-center" title="Centrer sur le piquetage d'essai">
+                        <i class="fa-solid fa-border-all"></i>
+                    </button>
+                    <button onclick="toggleMapLayer()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Changer fond de carte (Satellite / Plan / Cadastre)">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </button>
+                    <button onclick="toggleLabelsOnMap()" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-purple-600 text-slate-200 hover:text-white transition flex items-center justify-center" title="Afficher/Masquer les étiquettes des piquets">
+                        <i class="fa-solid fa-tags"></i>
+                    </button>
+                </div>
+
+                <!-- Quick Point A / Point B Pick Banner when active -->
+                <div id="mapPickBanner" class="hidden bg-amber-500 text-slate-950 font-bold text-xs px-3 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                    <span id="mapPickText">Cliquez sur la carte pour placer le Point A</span>
+                    <button onclick="cancelMapPick()" class="ml-2 underline text-[11px]">Annuler</button>
+                </div>
+            </div>
+
+            <!-- Floating Quick Action Bar (Bottom Left on Map) -->
+            <div class="absolute bottom-3 left-3 z-20 flex flex-wrap items-center gap-2">
+                <button onclick="recordQuickSinglePoint()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm px-3.5 py-2.5 rounded-xl shadow-lg border border-emerald-400/50 flex items-center gap-2 transition active:scale-95">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>Lever un point (GPS actuel)</span>
+                </button>
+                <div id="simuHintBanner" class="bg-slate-900/90 backdrop-blur border border-slate-700 text-slate-300 text-[11px] px-3 py-2 rounded-xl shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-emerald-400"></i>
+                    <span><b>Mode Simu :</b> Cliquez n'importe où sur la carte ou utilisez les flèches pour déplacer l'antenne au cm près.</span>
+                </div>
+            </div>
+
+            <!-- CENTIMETER STAKEOUT BULLSEYE OVERLAY (Top Right of Map) -->
+            <div id="stakeoutHud" class="absolute top-3 right-3 z-20 w-72 sm:w-80 bg-slate-900/95 backdrop-blur-md border-2 border-slate-700 rounded-2xl shadow-2xl overflow-hidden transition-all duration-200">
+                <!-- HUD Header -->
+                <div class="bg-slate-800/90 px-3.5 py-2 border-b border-slate-700 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Cible :</span>
+                        <span id="hudTargetName" class="font-mono-tech font-extrabold text-sm text-amber-400">B1-P1-SO</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="selectPrevNextStake(-1)" class="p-1 hover:bg-slate-700 rounded text-slate-300" title="Piquet précédent">
+                            <i class="fa-solid fa-chevron-left text-xs"></i>
+                        </button>
+                        <button onclick="selectPrevNextStake(1)" class="p-1 hover:bg-slate-700 rounded text-slate-300" title="Piquet suivant">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                        <button onclick="selectNearestUnstaked()" class="px-1.5 py-0.5 ml-1 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-semibold text-emerald-300" title="Piquet libre le plus proche">
+                            Auto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bullseye Canvas & Real-Time Offsets -->
+                <div class="p-3 flex flex-col items-center">
+                    <div class="relative w-44 h-44 flex items-center justify-center">
+                        <canvas id="bullseyeCanvas" width="180" height="180" class="w-44 h-44 rounded-full bg-slate-950 border border-slate-800 shadow-inner"></canvas>
+                        <!-- Distance Badge Overlay -->
+                        <div id="hudDistanceBadge" class="absolute bottom-1 px-2.5 py-0.5 rounded-full bg-slate-900/90 border border-slate-700 font-mono-tech text-xs font-extrabold text-white shadow">
+                            Dist: 0.00 m
+                        </div>
+                    </div>
+
+                    <!-- Reference Frame Selector (Ligne A-B vs Nord/Est) -->
+                    <div class="w-full flex items-center justify-between mt-2 mb-1.5 text-[11px] text-slate-400">
+                        <span>Repère de guidage :</span>
+                        <div class="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800">
+                            <button id="btnRefAxis" onclick="setGuidanceRef('axis')" class="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-semibold text-[10px]">Axe Essai (A→B)</button>
+                            <button id="btnRefCardinal" onclick="setGuidanceRef('cardinal')" class="px-2 py-0.5 rounded-md text-slate-400 hover:text-white font-semibold text-[10px]">Nord / Est</button>
+                        </div>
+                    </div>
+
+                    <!-- Directional Centimeter Bars -->
+                    <div class="w-full grid grid-cols-2 gap-2 mt-1">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
+                            <div id="hudDir1Label" class="text-[10px] font-bold uppercase text-slate-400">AVANT (Axe A→B)</div>
+                            <div id="hudDir1Val" class="font-mono-tech text-base font-extrabold text-amber-400 mt-0.5">+0.0 cm</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-center">
+                            <div id="hudDir2Label" class="text-[10px] font-bold uppercase text-slate-400">DROITE (Perp.)</div>
+                            <div id="hudDir2Val" class="font-mono-tech text-base font-extrabold text-sky-400 mt-0.5">+0.0 cm</div>
+                        </div>
+                    </div>
+
+                    <!-- Micro-step Simulator Pad (only visible in Simu mode) -->
+                    <div id="simuNudgePad" class="w-full mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1">
+                        <span class="text-[10px] text-slate-400 font-medium">Simu pas-à-pas :</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="nudgeRover(0, 0.01)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-mono-tech" title="+1 cm Avancer">▲ 1cm</button>
+                            <button onclick="nudgeRover(0, -0.01)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-mono-tech" title="-1 cm Reculer">▼ 1cm</button>
+                            <button onclick="nudgeRover(-0.01, 0)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-mono-tech" title="-1 cm Gauche">◀ 1cm</button>
+                            <button onclick="nudgeRover(0.01, 0)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-mono-tech" title="+1 cm Droite">▶ 1cm</button>
+                            <button onclick="snapRoverToTarget()" class="px-2 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-bold" title="Simuler l'arrivée sur le piquet">Cible</button>
+                        </div>
+                    </div>
+
+                    <!-- Validate Stake Button -->
+                    <button id="btnValidateStake" onclick="validateCurrentStake()" class="w-full mt-2.5 py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition active:scale-95">
+                        <i class="fa-solid fa-hammer"></i>
+                        <span>VALIDER LE PIQUET (Implanté)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR: TRIAL GENERATOR, STAKE LIST & I/O -->
+        <aside class="w-full lg:w-[430px] xl:w-[460px] h-[46vh] lg:h-full bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 flex flex-col z-20 shrink-0">
+            
+            <!-- Sidebar Navigation Tabs -->
+            <div class="grid grid-cols-3 bg-slate-950 p-1 border-b border-slate-800 shrink-0">
+                <button id="tabBtnGrid" onclick="switchSidebarTab('grid')" class="py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-800 text-emerald-400 shadow">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>Plan d'Essai</span>
+                </button>
+                <button id="tabBtnStakes" onclick="switchSidebarTab('stakes')" class="py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-map-pin"></i>
+                    <span>Piquets (<span id="tabStakeCount">0</span>)</span>
+                </button>
+                <button id="tabBtnExport" onclick="switchSidebarTab('export')" class="py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span>Import / Export</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: TRIAL GRID GENERATOR (Générateur de Piquetage d'Essai) -->
+            <div id="tabContentGrid" class="flex-1 overflow-y-auto p-3.5 space-y-4">
+                
+                <!-- Section 1: Baseline A -> B -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-ruler-combined"></i>
+                            1. Ligne de base (Axe A → B)
+                        </h2>
+                        <span id="uiAzimuthBadge" class="text-[11px] font-mono-tech bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-amber-300">
+                            Azimut: 18.5°
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">
+                        Définissez l'origine <b>Point A</b> (coin Sud-Ouest du 1er bloc) et la direction <b>Point B</b> (ou un angle d'azimut) avec votre antenne GPS ou sur la carte.
+                    </p>
+
+                    <!-- Point A -->
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800/80 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded bg-emerald-500 text-slate-950 font-extrabold text-[11px] flex items-center justify-center">A</span>
+                                Origine de l'essai (0,0)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="setPointFromRover('A')" class="px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1" title="Capturer la position actuelle de l'antenne GPS">
+                                    <i class="fa-solid fa-satellite-dish"></i> GPS
+                                </button>
+                                <button onclick="startMapPick('A')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-semibold flex items-center gap-1" title="Cliquer sur la carte">
+                                    <i class="fa-solid fa-location-dot"></i> Carte
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <input id="inpALat" type="number" step="0.0000001" value="49.8732500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none" placeholder="Latitude A">
+                            <input id="inpALon" type="number" step="0.0000001" value="2.3309500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-emerald-500 outline-none" placeholder="Longitude A">
+                        </div>
+                    </div>
+
+                    <!-- Point B or Azimuth -->
+                    <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800/80 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded bg-amber-400 text-slate-950 font-extrabold text-[11px] flex items-center justify-center">B</span>
+                                Direction (Axe longueur)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="setPointFromRover('B')" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/30 text-[11px] font-semibold flex items-center gap-1" title="Capturer la position actuelle de l'antenne GPS">
+                                    <i class="fa-solid fa-satellite-dish"></i> GPS
+                                </button>
+                                <button onclick="startMapPick('B')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-semibold flex items-center gap-1" title="Cliquer sur la carte">
+                                    <i class="fa-solid fa-location-dot"></i> Carte
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 items-center">
+                            <input id="inpBLat" type="number" step="0.0000001" value="49.8738500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none" placeholder="Lat B">
+                            <input id="inpBLon" type="number" step="0.0000001" value="2.3313500" onchange="onBaselineInputChange()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono-tech text-slate-200 focus:border-amber-400 outline-none" placeholder="Lon B">
+                            <div class="flex items-center bg-slate-950 border border-slate-800 rounded px-1.5 py-1">
+                                <span class="text-[10px] text-slate-400 mr-1">Az°</span>
+                                <input id="inpAzimuth" type="number" step="0.1" value="23.6" onchange="onAzimuthManualChange()" class="w-full bg-transparent text-xs font-mono-tech text-amber-300 outline-none" title="Azimut en degrés (0° = Nord, 90° = Est)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Geometry of Plots & Blocks -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-grip"></i>
+                        2. Configuration des Parcelles / Grille
+                    </h2>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nb de Blocs (Lignes Y)</label>
+                            <input id="cfgBlocks" type="number" min="1" max="50" value="4" oninput="generateTrialLayout()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech text-white focus:border-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Parcelles / Bloc (Col. X)</label>
+                            <input id="cfgPlotsPerBlock" type="number" min="1" max="100" value="6" oninput="generateTrialLayout()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech text-white focus:border-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Longueur Parcelle (m)</label>
+                            <input id="cfgPlotLength" type="number" step="0.01" min="0.1" value="9.00" oninput="generateTrialLayout()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech text-emerald-300 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Largeur Parcelle (m)</label>
+                            <input id="cfgPlotWidth" type="number" step="0.01" min="0.1" value="3.00" oninput="generateTrialLayout()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech text-emerald-300 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Allée Inter-Blocs (m)</label>
+                            <input id="cfgAlleyLength" type="number" step="0.01" min="0" value="2.50" oninput="generateTrialLayout()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech text-amber-300 focus:border-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Écart Inter-Parcelles (m)</label>
+                            <input id="cfgAlleyWidth" type="number" step="0.01" min="0" value="0.50" oninput="generateTrialLayout()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono-tech text-amber-300 focus:border-emerald-500 outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Staking Mode (Which stakes to generate per plot) -->
+                    <div class="pt-1">
+                        <label class="block text-[11px] font-semibold text-slate-300 mb-1">Mode de génération des piquets</label>
+                        <select id="cfgStakeMode" onchange="generateTrialLayout()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs font-medium text-white focus:border-emerald-500 outline-none">
+                            <option value="front2">2 piquets en tête de chaque parcelle (SO + SE)</option>
+                            <option value="all4">4 coins par parcelle (SO, SE, NE, NO)</option>
+                            <option value="corners_only">Piquets d'angles de blocs + têtes de parcelles (Optimisé)</option>
+                            <option value="centers">Centre géométrique de chaque parcelle (1 point/parcelle)</option>
+                            <option value="perimeter">Périmètre extérieur de l'essai uniquement (4 grands coins)</option>
+                        </select>
+                    </div>
+
+                    <!-- Summary of dimensions -->
+                    <div id="trialSummaryBox" class="bg-slate-900/90 border border-slate-800 rounded-lg p-2.5 text-[11px] text-slate-300 flex items-center justify-between">
+                        <span>Surface totale : <b id="sumDimensions" class="text-white font-mono-tech">43.50m × 20.50m</b></span>
+                        <span>Total : <b id="sumPlotsCount" class="text-emerald-400 font-mono-tech">24 parcelles</b></span>
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="generateTrialLayout(true)" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1.5 transition">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Régénérer le Piquetage</span>
+                        </button>
+                        <button onclick="resetAllStakesStatus()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs py-2.5 px-3 rounded-xl border border-slate-700 transition" title="Remettre tous les piquets en statut 'À implanter'">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: STAKES LIST & FIELD CHECKLIST -->
+            <div id="tabContentStakes" class="hidden flex-1 flex flex-col overflow-hidden p-3 space-y-2.5">
+                <!-- Filter & Search -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
+                        <input id="inpSearchStake" type="text" oninput="renderStakeList()" placeholder="Chercher piquet (ex: B1-P2, Relevé...)" class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white focus:border-emerald-500 outline-none">
+                    </div>
+                    <select id="selFilterStake" onchange="renderStakeList()" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none">
+                        <option value="all">Tous</option>
+                        <option value="todo">À piqueter</option>
+                        <option value="done">Implantés</option>
+                    </select>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="bg-slate-950 border border-slate-800 rounded-lg p-2 shrink-0">
+                    <div class="flex justify-between text-[11px] mb-1">
+                        <span class="text-slate-400 font-medium">Progression du chantier :</span>
+                        <span id="uiProgressText" class="font-mono-tech font-bold text-emerald-400">0 / 48 (0%)</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="uiProgressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Stake List -->
+                <div id="stakeListContainer" class="flex-1 overflow-y-auto space-y-1.5 pr-1"></div>
+            </div>
+
+            <!-- TAB 3: IMPORT / EXPORT & PROTOCOLS -->
+            <div id="tabContentExport" class="hidden flex-1 overflow-y-auto p-3.5 space-y-4">
+                <!-- Export Formats -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i>
+                        Exporter le Piquetage & Relevés
+                    </h2>
+                    <p class="text-[11px] text-slate-400">
+                        Exportez vos coordonnées en <b>WGS84 (Lat/Lon)</b> et <b>RGF93 / Lambert-93 (X, Y en mètres)</b> avec les écarts d'implantation enregistrés.
+                    </p>
+                    <div class="grid grid-cols-1 gap-2 pt-1">
+                        <button onclick="exportStakesCSV()" class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center justify-between shadow transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-file-csv text-base"></i> Exporter CSV (Excel / Topographie L93 + WGS84)</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button onclick="exportTrialGeoJSON()" class="w-full py-2.5 px-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs flex items-center justify-between shadow transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-map text-base"></i> Exporter GeoJSON (QGIS / Parcelles + Piquets)</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button onclick="exportTrialKML()" class="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs flex items-center justify-between shadow transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-earth-europe text-base"></i> Exporter KML (Google Earth)</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Import CSV -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                    <h2 class="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-upload"></i>
+                        Importer une liste de piquets (CSV)
+                    </h2>
+                    <p class="text-[11px] text-slate-400">
+                        Format accepté : colonnes <code>ID,Lat,Lon</code> (avec point ou point-virgule).
+                    </p>
+                    <input id="inpFileCsv" type="file" accept=".csv,.txt" onchange="importStakesCSV(event)" class="block w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-emerald-400 hover:file:bg-slate-700 cursor-pointer">
+                </div>
+
+                <!-- Guide Antenne Externe RTK -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2 text-[11px] text-slate-300">
+                    <h3 class="font-bold text-white flex items-center gap-1.5 text-xs">
+                        <i class="fa-solid fa-circle-question text-amber-400"></i>
+                        Comment relier votre antenne centimétrique ?
+                    </h3>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-400">
+                        <li><b>Sur Android / Tablette terrain :</b> Activez votre application NTRIP habituelle (<i>Lefebure NTRIP Client, Bluetooth GNSS, SW Maps</i>) avec l'option <b>"Position fictive / Mock Location"</b> activée, puis cliquez sur <b>GPS Externe (OS)</b> en haut.</li>
+                        <li><b>En direct USB / Bluetooth SPP (PC ou Android Chrome) :</b> Cliquez sur <b>NMEA Série</b> en haut et sélectionnez le port COM de votre récepteur GNSS (décode les trames <code>$GNGGA</code> / <code>$GPGGA</code> à 5–10 Hz avec statut RTK Fix/Float réel).</li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Non-intrusive Toast Notification -->
+    <div id="toastBox" class="fixed bottom-4 right-4 z-50 hidden bg-slate-900 border border-emerald-500/60 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold">
+        <i id="toastIcon" class="fa-solid fa-check-circle text-emerald-400 text-sm"></i>
+        <span id="toastMsg">Opération effectuée</span>
+    </div>
+
+    <script>
+        /* ============================================================================
+         * 1. APPLICATION STATE & GEODETIC CONSTANTS (WGS84 & RGF93 LAMBERT-93)
+         * ============================================================================ */
+        const state = {
+            gnssSource: 'simulation', // 'simulation' | 'geolocation' | 'serial'
+            watchId: null,
+            serialPort: null,
+            rover: {
+                lat: 49.8732480,
+                lon: 2.3309480,
+                accuracy: 0.012, // 1.2 cm in RTK Fix
+                fixType: 'SIMU RTK FIX',
+                sats: 24,
+                hdop: 0.6,
+                heading: 0
+            },
+            baseline: {
+                latA: 49.8732500,
+                lonA: 2.3309500,
+                latB: 49.8738500,
+                lonB: 2.3313500,
+                azimuthDeg: 23.6
+            },
+            plots: [],       // Polygons of trial plots
+            stakes: [],      // Individual stake points to implant
+            activeStakeId: null,
+            guidanceRef: 'axis', // 'axis' (Along A->B / Perp) or 'cardinal' (North / East)
+            toleranceMeters: 0.025, // 2.5 cm validation tolerance
+            mapPickMode: null, // null | 'A' | 'B'
+            showMapLabels: true,
+            currentLayerIndex: 0,
+            audioEnabled: false,
+            audioCtx: null,
+            lastBeepTime: 0
+        };
+
+        // Exact WGS84 Ellipsoid radii of curvature for millimeter-accurate local tangent plane (ENU) offsets
+        function getWgs84Radii(latDeg) {
+            const a = 6378137.0;
+            const f = 1 / 298.257223563;
+            const e2 = 2 * f - f * f;
+            const latRad = latDeg * Math.PI / 180.0;
+            const sinLat = Math.sin(latRad);
+            const denom = Math.sqrt(1 - e2 * sinLat * sinLat);
+            const rn = a / denom; // Prime vertical radius
+            const rm = (a * (1 - e2)) / (denom * denom * denom); // Meridional radius
+            return { rm, rn, cosLat: Math.cos(latRad) };
+        }
+
+        // Convert local metric offset (dEast, dNorth in meters) from origin (lat0, lon0) to exact WGS84 (lat, lon)
+        function enuToWgs84(lat0, lon0, dEastMeters, dNorthMeters) {
+            const { rm, rn, cosLat } = getWgs84Radii(lat0);
+            const dLatRad = dNorthMeters / rm;
+            const dLonRad = dEastMeters / (rn * cosLat);
+            return {
+                lat: lat0 + (dLatRad * 180.0 / Math.PI),
+                lon: lon0 + (dLonRad * 180.0 / Math.PI)
+            };
+        }
+
+        // Convert two WGS84 points (lat1, lon1) -> (lat2, lon2) into metric offsets (dEast, dNorth, distMeters)
+        function wgs84ToEnu(lat1, lon1, lat2, lon2) {
+            const { rm, rn, cosLat } = getWgs84Radii((lat1 + lat2) * 0.5);
+            const dLatRad = (lat2 - lat1) * Math.PI / 180.0;
+            const dLonRad = (lon2 - lon1) * Math.PI / 180.0;
+            const dNorth = dLatRad * rm;
+            const dEast = dLonRad * rn * cosLat;
+            const dist = Math.hypot(dEast, dNorth);
+            return { dEast, dNorth, dist };
+        }
+
+        // Official IGN France RGF93 -> Lambert-93 (EPSG:2154) projection for millimeter display & CSV export
+        function wgs84ToLambert93(latDeg, lonDeg) {
+            const a = 6378137.0;
+            const e = 0.0818191910428158;
+            const lc = 3.0 * Math.PI / 180.0; // Central meridian 3° E
+            const n = 0.725607765053267;
+            const c = 11754255.426096;
+            const xs = 700000.0;
+            const ys = 12655612.049876;
+
+            const phi = latDeg * Math.PI / 180.0;
+            const lambda = lonDeg * Math.PI / 180.0;
+            const sinPhi = Math.sin(phi);
+            const latIso = Math.log(Math.tan(Math.PI / 4.0 + phi / 2.0) * Math.pow((1.0 - e * sinPhi) / (1.0 + e * sinPhi), e / 2.0));
+            const r = c * Math.exp(-n * latIso);
+            const gamma = n * (lambda - lc);
+
+            const x = xs + r * Math.sin(gamma);
+            const y = ys - r * Math.cos(gamma);
+            return { x, y };
+        }
+
+        /* ============================================================================
+         * 2. LEAFLET MAP SETUP (WITH CENTIMETER DIGITAL ZOOM UP TO 24)
+         * ============================================================================ */
+        let map, baseLayers, plotLayerGroup, stakeLayerGroup, baselineLayerGroup, roverMarker, roverAccuracyCircle, guidanceLine;
+
+        function initMap() {
+            map = L.map('map', {
+                center: [state.baseline.latA, state.baseline.lonA],
+                zoom: 19,
+                maxZoom: 24,
+                zoomControl: false
+            });
+
+            // Satellite Orthophoto + OpenStreetMap + IGN Plan layers with digital overzoom up to level 24
+            const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxNativeZoom: 19,
+                maxZoom: 24,
+                attribution: 'Esri Orthophoto'
+            });
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxNativeZoom: 19,
+                maxZoom: 24,
+                attribution: 'OpenStreetMap'
+            });
+            const ignOrtho = L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}', {
+                maxNativeZoom: 19,
+                maxZoom: 24,
+                attribution: 'IGN France Ortho'
+            });
+
+            baseLayers = [ignOrtho, esriSat, osmLayer];
+            baseLayers[0].addTo(map);
+
+            baselineLayerGroup = L.layerGroup().addTo(map);
+            plotLayerGroup = L.layerGroup().addTo(map);
+            stakeLayerGroup = L.layerGroup().addTo(map);
+
+            // Rover Accuracy Circle
+            roverAccuracyCircle = L.circle([state.rover.lat, state.rover.lon], {
+                radius: state.rover.accuracy,
+                color: '#10b981',
+                weight: 1,
+                fillColor: '#10b981',
+                fillOpacity: 0.2
+            }).addTo(map);
+
+            // Rover Antenna Marker
+            const roverIcon = L.divIcon({
+                className: 'custom-rover-icon',
+                html: `<div class="relative flex items-center justify-center w-6 h-6">
+                        <span class="absolute w-6 h-6 rounded-full bg-emerald-400/50 rtk-pulse"></span>
+                        <span class="relative w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-slate-950 shadow-lg"></span>
+                       </div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+            roverMarker = L.marker([state.rover.lat, state.rover.lon], { icon: roverIcon, zIndexOffset: 1000 }).addTo(map);
+
+            // Dynamic rubberband line between Rover and Target Stake
+            guidanceLine = L.polyline([], {
+                color: '#f59e0b',
+                weight: 2,
+                dashArray: '5, 5'
+            }).addTo(map);
+
+            // Map Click Handler (Pick Point A/B OR Move Simulated RTK Antenna)
+            map.on('click', (e) => {
+                if (state.mapPickMode === 'A') {
+                    document.getElementById('inpALat').value = e.latlng.lat.toFixed(7);
+                    document.getElementById('inpALon').value = e.latlng.lng.toFixed(7);
+                    cancelMapPick();
+                    onBaselineInputChange();
+                    showToast('Origine Point A mise à jour sur la carte');
+                } else if (state.mapPickMode === 'B') {
+                    document.getElementById('inpBLat').value = e.latlng.lat.toFixed(7);
+                    document.getElementById('inpBLon').value = e.latlng.lng.toFixed(7);
+                    cancelMapPick();
+                    onBaselineInputChange();
+                    showToast('Direction Point B mise à jour sur la carte');
+                } else if (state.gnssSource === 'simulation') {
+                    state.rover.lat = e.latlng.lat;
+                    state.rover.lon = e.latlng.lng;
+                    updateRoverTelemetryAndGuidance();
+                }
+            });
+        }
+
+        /* ============================================================================
+         * 3. TRIAL PLOT & STAKE GENERATOR (Piquetage d'Essai Agronomique / Grille)
+         * ============================================================================ */
+        function onBaselineInputChange() {
+            const latA = parseFloat(document.getElementById('inpALat').value) || state.baseline.latA;
+            const lonA = parseFloat(document.getElementById('inpALon').value) || state.baseline.lonA;
+            const latB = parseFloat(document.getElementById('inpBLat').value) || state.baseline.latB;
+            const lonB = parseFloat(document.getElementById('inpBLon').value) || state.baseline.lonB;
+
+            const { dEast, dNorth, dist } = wgs84ToEnu(latA, lonA, latB, lonB);
+            let azDeg = state.baseline.azimuthDeg;
+            if (dist > 0.05) {
+                azDeg = (Math.atan2(dEast, dNorth) * 180.0 / Math.PI + 360.0) % 360.0;
+                document.getElementById('inpAzimuth').value = azDeg.toFixed(2);
+            }
+            state.baseline = { latA, lonA, latB, lonB, azimuthDeg: azDeg };
+            document.getElementById('uiAzimuthBadge').textContent = `Azimut: ${azDeg.toFixed(1)}°`;
+            generateTrialLayout();
+        }
+
+        function onAzimuthManualChange() {
+            const latA = parseFloat(document.getElementById('inpALat').value) || state.baseline.latA;
+            const lonA = parseFloat(document.getElementById('inpALon').value) || state.baseline.lonA;
+            const azDeg = parseFloat(document.getElementById('inpAzimuth').value) || 0;
+            const azRad = azDeg * Math.PI / 180.0;
+            // Project Point B 50m along azimuth
+            const ptB = enuToWgs84(latA, lonA, 50 * Math.sin(azRad), 50 * Math.cos(azRad));
+            document.getElementById('inpBLat').value = ptB.lat.toFixed(7);
+            document.getElementById('inpBLon').value = ptB.lon.toFixed(7);
+            state.baseline = { latA, lonA, latB: ptB.lat, lonB: ptB.lon, azimuthDeg: azDeg };
+            document.getElementById('uiAzimuthBadge').textContent = `Azimut: ${azDeg.toFixed(1)}°`;
+            generateTrialLayout();
+        }
+
+        // Convert local Trial coordinates (xRightMeters perpendicular to A->B, yForwardMeters along A->B) to WGS84
+        function trialCoordToWgs84(xRightMeters, yForwardMeters) {
+            const azRad = state.baseline.azimuthDeg * Math.PI / 180.0;
+            const sinAz = Math.sin(azRad);
+            const cosAz = Math.cos(azRad);
+            // Forward vector is (sinAz, cosAz) in (East, North)
+            // Right vector (90° clockwise) is (cosAz, -sinAz) in (East, North)
+            const dEast = yForwardMeters * sinAz + xRightMeters * cosAz;
+            const dNorth = yForwardMeters * cosAz - xRightMeters * sinAz;
+            return enuToWgs84(state.baseline.latA, state.baseline.lonA, dEast, dNorth);
+        }
+
+        function generateTrialLayout(showNotification = false) {
+            const blocks = Math.max(1, parseInt(document.getElementById('cfgBlocks').value) || 1);
+            const plotsPerBlock = Math.max(1, parseInt(document.getElementById('cfgPlotsPerBlock').value) || 1);
+            const plotLength = Math.max(0.1, parseFloat(document.getElementById('cfgPlotLength').value) || 9);
+            const plotWidth = Math.max(0.1, parseFloat(document.getElementById('cfgPlotWidth').value) || 3);
+            const alleyLength = Math.max(0, parseFloat(document.getElementById('cfgAlleyLength').value) || 0);
+            const alleyWidth = Math.max(0, parseFloat(document.getElementById('cfgAlleyWidth').value) || 0);
+            const stakeMode = document.getElementById('cfgStakeMode').value;
+
+            const totalLength = blocks * plotLength + (blocks - 1) * alleyLength;
+            const totalWidth = plotsPerBlock * plotWidth + (plotsPerBlock - 1) * alleyWidth;
+            document.getElementById('sumDimensions').textContent = `${totalLength.toFixed(2)}m × ${totalWidth.toFixed(2)}m`;
+            document.getElementById('sumPlotsCount').textContent = `${blocks * plotsPerBlock} parcelles`;
+
+            // Preserve any manually recorded stakes ("RELEVE-*")
+            const manualStakes = state.stakes.filter(s => s.isManual);
+            const newPlots = [];
+            const newStakes = [];
+            const addedCoordKeys = new Set();
+
+            function addStakeUnique(id, label, xRight, yFwd, plotCode, cornerName) {
+                const key = `${xRight.toFixed(3)}_${yFwd.toFixed(3)}`;
+                if (stakeMode === 'corners_only' && addedCoordKeys.has(key)) return;
+                addedCoordKeys.add(key);
+
+                const wgs = trialCoordToWgs84(xRight, yFwd);
+                const l93 = wgs84ToLambert93(wgs.lat, wgs.lon);
+                newStakes.push({
+                    id,
+                    label,
+                    plotCode,
+                    corner: cornerName,
+                    xLocal: xRight,
+                    yLocal: yFwd,
+                    lat: wgs.lat,
+                    lon: wgs.lon,
+                    xL93: l93.x,
+                    yL93: l93.y,
+                    staked: false,
+                    stakedAccuracyCm: null,
+                    stakedTime: null,
+                    isManual: false
+                });
+            }
+
+            let plotNumberGlobal = 101;
+            for (let b = 0; b < blocks; b++) {
+                const y0 = b * (plotLength + alleyLength);
+                const y1 = y0 + plotLength;
+                const blockNum = b + 1;
+
+                for (let p = 0; p < plotsPerBlock; p++) {
+                    const x0 = p * (plotWidth + alleyWidth);
+                    const x1 = x0 + plotWidth;
+                    const plotNum = p + 1;
+                    const plotCode = `B${blockNum}-P${plotNum}`;
+                    const agroNo = (blockNum * 100) + plotNum;
+
+                    const sw = trialCoordToWgs84(x0, y0);
+                    const se = trialCoordToWgs84(x1, y0);
+                    const ne = trialCoordToWgs84(x1, y1);
+                    const nw = trialCoordToWgs84(x0, y1);
+
+                    newPlots.push({
+                        code: plotCode,
+                        agroNo,
+                        block: blockNum,
+                        plot: plotNum,
+                        coords: [[sw.lat, sw.lon], [se.lat, se.lon], [ne.lat, ne.lon], [nw.lat, nw.lon]]
+                    });
+
+                    if (stakeMode === 'front2') {
+                        addStakeUnique(`${plotCode}-SO`, `${plotCode}-SO`, x0, y0, plotCode, 'Avant-Gauche (SO)');
+                        addStakeUnique(`${plotCode}-SE`, `${plotCode}-SE`, x1, y0, plotCode, 'Avant-Droite (SE)');
+                    } else if (stakeMode === 'all4') {
+                        addStakeUnique(`${plotCode}-SO`, `${plotCode}-SO`, x0, y0, plotCode, 'SO');
+                        addStakeUnique(`${plotCode}-SE`, `${plotCode}-SE`, x1, y0, plotCode, 'SE');
+                        addStakeUnique(`${plotCode}-NE`, `${plotCode}-NE`, x1, y1, plotCode, 'NE');
+                        addStakeUnique(`${plotCode}-NO`, `${plotCode}-NO`, x0, y1, plotCode, 'NO');
+                    } else if (stakeMode === 'corners_only') {
+                        addStakeUnique(`${plotCode}-SO`, `${plotCode}-SO`, x0, y0, plotCode, 'Tête G');
+                        if (p === plotsPerBlock - 1) {
+                            addStakeUnique(`${plotCode}-SE`, `${plotCode}-SE`, x1, y0, plotCode, 'Tête D');
+                            addStakeUnique(`${plotCode}-NE`, `${plotCode}-NE`, x1, y1, plotCode, 'Fond D');
+                        }
+                        if (p === 0) {
+                            addStakeUnique(`${plotCode}-NO`, `${plotCode}-NO`, x0, y1, plotCode, 'Fond G');
+                        }
+                    } else if (stakeMode === 'centers') {
+                        addStakeUnique(`${plotCode}-C`, `${plotCode}-Centre`, (x0 + x1) / 2, (y0 + y1) / 2, plotCode, 'Centre');
+                    }
+                    plotNumberGlobal++;
+                }
+            }
+
+            if (stakeMode === 'perimeter') {
+                addStakeUnique('EXT-SO', 'EXT-SO (Origine A)', 0, 0, 'Périmètre', 'Coin SO');
+                addStakeUnique('EXT-SE', 'EXT-SE', totalWidth, 0, 'Périmètre', 'Coin SE');
+                addStakeUnique('EXT-NE', 'EXT-NE', totalWidth, totalLength, 'Périmètre', 'Coin NE');
+                addStakeUnique('EXT-NO', 'EXT-NO', 0, totalLength, 'Périmètre', 'Coin NO');
+            }
+
+            state.plots = newPlots;
+            state.stakes = [...newStakes, ...manualStakes];
+
+            if (!state.activeStakeId || !state.stakes.find(s => s.id === state.activeStakeId)) {
+                state.activeStakeId = state.stakes.length > 0 ? state.stakes[0].id : null;
+            }
+
+            renderMapGeometry();
+            renderStakeList();
+            updateRoverTelemetryAndGuidance();
+            if (showNotification) showToast(`${newStakes.length} piquets générés au centimètre près`);
+        }
+
+        /* ============================================================================
+         * 4. MAP RENDERING & INTERACTION
+         * ============================================================================ */
+        function renderMapGeometry() {
+            baselineLayerGroup.clearLayers();
+            plotLayerGroup.clearLayers();
+            stakeLayerGroup.clearLayers();
+
+            // 1. Render Baseline A -> B
+            const azRad = state.baseline.azimuthDeg * Math.PI / 180.0;
+            const axisEnd = enuToWgs84(state.baseline.latA, state.baseline.lonA, 60 * Math.sin(azRad), 60 * Math.cos(azRad));
+            L.polyline([[state.baseline.latA, state.baseline.lonA], [axisEnd.lat, axisEnd.lon]], {
+                color: '#10b981',
+                weight: 2.5,
+                dashArray: '8, 6'
+            }).addTo(baselineLayerGroup);
+
+            // Point A & Point B Markers
+            L.circleMarker([state.baseline.latA, state.baseline.lonA], {
+                radius: 7, color: '#059669', fillColor: '#10b981', fillOpacity: 1, weight: 2
+            }).bindTooltip('A (Origine 0,0)', { permanent: false, direction: 'top' }).addTo(baselineLayerGroup);
+
+            L.circleMarker([state.baseline.latB, state.baseline.lonB], {
+                radius: 6, color: '#d97706', fillColor: '#fbbf24', fillOpacity: 1, weight: 2
+            }).bindTooltip('B (Axe Azimut)', { permanent: false, direction: 'top' }).addTo(baselineLayerGroup);
+
+            // 2. Render Trial Plot Polygons
+            const blockColors = ['#38bdf8', '#a78bfa', '#34d399', '#fb923c', '#f472b6'];
+            state.plots.forEach(p => {
+                const color = blockColors[(p.block - 1) % blockColors.length];
+                const poly = L.polygon(p.coords, {
+                    color: color,
+                    weight: 1.5,
+                    fillColor: color,
+                    fillOpacity: 0.14
+                }).addTo(plotLayerGroup);
+
+                poly.bindTooltip(`<b>${p.code}</b> (N° ${p.agroNo})`, { sticky: true });
+            });
+
+            // 3. Render Individual Stakes
+            state.stakes.forEach(s => {
+                const isActive = s.id === state.activeStakeId;
+                const fillColor = s.staked ? '#10b981' : (isActive ? '#f59e0b' : '#f8fafc');
+                const borderColor = isActive ? '#fef08a' : (s.staked ? '#064e3b' : '#0f172a');
+                const radius = isActive ? 7 : 5;
+
+                const marker = L.circleMarker([s.lat, s.lon], {
+                    radius,
+                    color: borderColor,
+                    weight: isActive ? 3 : 2,
+                    fillColor: fillColor,
+                    fillOpacity: 1
+                }).addTo(stakeLayerGroup);
+
+                if (state.showMapLabels) {
+                    marker.bindTooltip(s.label, {
+                        permanent: true,
+                        direction: 'top',
+                        offset: [0, -6],
+                        className: isActive ? 'stake-label stake-label-active' : 'stake-label'
+                    });
+                }
+
+                marker.on('click', (ev) => {
+                    L.DomEvent.stopPropagation(ev);
+                    selectStake(s.id);
+                });
+            });
+        }
+
+        /* ============================================================================
+         * 5. CENTIMETER BULLSEYE RADAR & GUIDANCE ENGINE
+         * ============================================================================ */
+        function updateRoverTelemetryAndGuidance() {
+            // Update Top Bar Telemetry
+            const accCm = state.rover.accuracy * 100;
+            const uiAcc = document.getElementById('uiAccuracy');
+            uiAcc.textContent = `± ${accCm.toFixed(1)} cm`;
+            uiAcc.className = `font-mono-tech text-xs sm:text-sm font-extrabold ${accCm <= 2.5 ? 'text-emerald-400' : (accCm <= 15 ? 'text-amber-400' : 'text-rose-400')}`;
+
+            document.getElementById('uiWgs84').textContent = `${state.rover.lat.toFixed(7)}° N, ${state.rover.lon.toFixed(7)}° E`;
+            const l93 = wgs84ToLambert93(state.rover.lat, state.rover.lon);
+            document.getElementById('uiLambert').textContent = `X: ${l93.x.toFixed(3)}m Y: ${l93.y.toFixed(3)}m`;
+            document.getElementById('uiSats').innerHTML = `${state.rover.sats} <span class="text-slate-500">|</span> ${state.rover.hdop.toFixed(1)}`;
+            document.getElementById('fixBadge').textContent = state.rover.fixType;
+
+            // Update Map Rover Position
+            if (roverMarker) {
+                roverMarker.setLatLng([state.rover.lat, state.rover.lon]);
+                roverAccuracyCircle.setLatLng([state.rover.lat, state.rover.lon]);
+                roverAccuracyCircle.setRadius(state.rover.accuracy);
+            }
+
+            // Calculate vector from Rover to Active Target Stake
+            const target = state.stakes.find(s => s.id === state.activeStakeId);
+            if (!target) return;
+
+            document.getElementById('hudTargetName').textContent = target.label;
+
+            // Update rubberband line on map
+            guidanceLine.setLatLngs([[state.rover.lat, state.rover.lon], [target.lat, target.lon]]);
+
+            // Vector from Rover to Target in meters (dEast, dNorth)
+            const { dEast, dNorth, dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, target.lat, target.lon);
+
+            // Convert distance to human-readable cm / m
+            const distBadge = document.getElementById('hudDistanceBadge');
+            const isWithinTolerance = dist <= state.toleranceMeters;
+            if (dist < 1.0) {
+                distBadge.textContent = `Écart: ${(dist * 100).toFixed(1)} cm`;
+            } else {
+                distBadge.textContent = `Dist: ${dist.toFixed(2)} m`;
+            }
+            distBadge.className = `absolute bottom-1 px-2.5 py-0.5 rounded-full font-mono-tech text-xs font-extrabold shadow border ${
+                isWithinTolerance ? 'bg-emerald-500 text-slate-950 border-emerald-300' : 'bg-slate-900/90 text-white border-slate-700'
+            }`;
+
+            // Calculate Guidance Components (Either along Trial Axis A->B or Cardinal North/East)
+            let comp1, comp2, label1, label2;
+            if (state.guidanceRef === 'axis') {
+                const azRad = state.baseline.azimuthDeg * Math.PI / 180.0;
+                const sinAz = Math.sin(azRad);
+                const cosAz = Math.cos(azRad);
+                // Project (dEast, dNorth) onto Forward Axis (A->B) and Right Axis (Perpendicular)
+                comp1 = dEast * sinAz + dNorth * cosAz; // + = Avancer, - = Reculer
+                comp2 = dEast * cosAz - dNorth * sinAz; // + = Droite, - = Gauche
+                label1 = comp1 >= 0 ? 'AVANCER (Axe A→B)' : 'RECULER (Axe A→B)';
+                label2 = comp2 >= 0 ? 'ALLER À DROITE' : 'ALLER À GAUCHE';
+            } else {
+                comp1 = dNorth; // + = Nord, - = Sud
+                comp2 = dEast;  // + = Est, - = Ouest
+                label1 = comp1 >= 0 ? 'ALLER AU NORD ▲' : 'ALLER AU SUD ▼';
+                label2 = comp2 >= 0 ? 'ALLER À L\'EST ▶' : 'ALLER À L\'OUEST ◀';
+            }
+
+            document.getElementById('hudDir1Label').textContent = label1;
+            document.getElementById('hudDir2Label').textContent = label2;
+            document.getElementById('hudDir1Val').textContent = formatMetricOffset(Math.abs(comp1));
+            document.getElementById('hudDir2Val').textContent = formatMetricOffset(Math.abs(comp2));
+
+            // Draw Bullseye Canvas
+            drawBullseyeCanvas(comp2, comp1, dist, isWithinTolerance);
+
+            // Trigger acoustic feedback if enabled
+            handleProximityAudio(dist, isWithinTolerance);
+        }
+
+        function formatMetricOffset(meters) {
+            if (meters < 1.0) {
+                return `${(meters * 100).toFixed(1)} cm`;
+            }
+            return `${meters.toFixed(2)} m`;
+        }
+
+        function drawBullseyeCanvas(dxMeters, dyMeters, distMeters, isWithinTolerance) {
+            const canvas = document.getElementById('bullseyeCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Automatic zoom scale based on proximity (5m -> 1m -> 25cm -> 10cm full scale)
+            let maxScaleMeters = 5.0;
+            if (distMeters < 0.12) maxScaleMeters = 0.10;      // 10 cm full radius
+            else if (distMeters < 0.40) maxScaleMeters = 0.30; // 30 cm full radius
+            else if (distMeters < 1.50) maxScaleMeters = 1.20; // 1.2 m full radius
+
+            const radiusPx = 76;
+
+            // Background rings
+            const rings = [0.33, 0.66, 1.0];
+            rings.forEach((rRatio) => {
+                ctx.beginPath();
+                ctx.arc(cx, cy, radiusPx * rRatio, 0, Math.PI * 2);
+                ctx.strokeStyle = isWithinTolerance ? 'rgba(16, 185, 129, 0.45)' : 'rgba(71, 85, 105, 0.55)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Center tolerance zone
+            const tolRadius = Math.max(5, Math.min(24, (state.toleranceMeters / maxScaleMeters) * radiusPx));
+            ctx.beginPath();
+            ctx.arc(cx, cy, tolRadius, 0, Math.PI * 2);
+            ctx.fillStyle = isWithinTolerance ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.15)';
+            ctx.fill();
+            ctx.strokeStyle = isWithinTolerance ? '#10b981' : '#f59e0b';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Crosshair axes
+            ctx.beginPath();
+            ctx.moveTo(cx - radiusPx, cy);
+            ctx.lineTo(cx + radiusPx, cy);
+            ctx.moveTo(cx, cy - radiusPx);
+            ctx.lineTo(cx, cy + radiusPx);
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Scale label
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 9px "JetBrains Mono", monospace';
+            const scaleLabel = maxScaleMeters < 1 ? `Échelle: ±${Math.round(maxScaleMeters * 100)}cm` : `Échelle: ±${maxScaleMeters}m`;
+            ctx.fillText(scaleLabel, 10, 16);
+
+            // Compute target position relative to center (Rover is at center, or Target is at center)
+            // Convention: Center of bullseye is the TARGET STAKE. Moving dot is our ANTENNA position relative to target!
+            // Since (dxMeters, dyMeters) is vector from Rover -> Target, Rover relative to Target is (-dxMeters, -dyMeters)
+            const relX = -dxMeters / maxScaleMeters;
+            const relY = dyMeters / maxScaleMeters; // Canvas Y is inverted
+            const clampedMag = Math.min(1.0, Math.hypot(relX, relY));
+            const angle = Math.atan2(relY, relX);
+            const dotX = cx + Math.cos(angle) * clampedMag * radiusPx;
+            const dotY = cy + Math.sin(angle) * clampedMag * radiusPx;
+
+            // Guidance vector line from Antenna Dot to Center Target
+            ctx.beginPath();
+            ctx.moveTo(dotX, dotY);
+            ctx.lineTo(cx, cy);
+            ctx.strokeStyle = isWithinTolerance ? '#10b981' : '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Antenna Dot
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, 7, 0, Math.PI * 2);
+            ctx.fillStyle = isWithinTolerance ? '#10b981' : '#38bdf8';
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        /* ============================================================================
+         * 6. EXTERNAL GPS CONNECTION (OS GEOLOCATION + WEB SERIAL NMEA 0183 PARSER)
+         * ============================================================================ */
+        function switchGnssSource(source) {
+            state.gnssSource = source;
+
+            // Update button visual states
+            const btnGps = document.getElementById('btnSourceGps');
+            const btnSimu = document.getElementById('btnSourceSimu');
+            const simuPad = document.getElementById('simuNudgePad');
+            const simuBanner = document.getElementById('simuHintBanner');
+
+            if (state.watchId !== null) {
+                navigator.geolocation.clearWatch(state.watchId);
+                state.watchId = null;
+            }
+
+            if (source === 'geolocation') {
+                btnGps.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white border border-emerald-400 transition flex items-center gap-1.5';
+                btnSimu.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5';
+                simuPad.classList.add('hidden');
+                simuBanner.classList.add('hidden');
+
+                if (!navigator.geolocation) {
+                    showToast('Géolocalisation non supportée par ce navigateur', true);
+                    return;
+                }
+
+                showToast('Connexion au GPS haute précision en cours...');
+                state.watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        state.rover.lat = pos.coords.latitude;
+                        state.rover.lon = pos.coords.longitude;
+                        state.rover.accuracy = pos.coords.accuracy || 0.02;
+                        state.rover.fixType = state.rover.accuracy <= 0.05 ? 'RTK FIX (OS)' : (state.rover.accuracy <= 0.5 ? 'RTK FLOAT' : 'GPS AUTO');
+                        updateRoverTelemetryAndGuidance();
+                    },
+                    (err) => {
+                        showToast(`Erreur GPS (${err.message}). Retour en mode Simu.`, true);
+                        switchGnssSource('simulation');
+                    },
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+                );
+            } else {
+                btnSimu.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white border border-emerald-400 transition flex items-center gap-1.5';
+                btnGps.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5';
+                simuPad.classList.remove('hidden');
+                simuBanner.classList.remove('hidden');
+                state.rover.accuracy = 0.012;
+                state.rover.fixType = 'SIMU RTK FIX';
+                updateRoverTelemetryAndGuidance();
+            }
+        }
+
+        // Direct NMEA 0183 ($GPGGA / $GNGGA) Reader via Web Serial API (USB OTG or Bluetooth SPP COM port)
+        async function connectWebSerialNmea() {
+            if (!('serial' in navigator)) {
+                showToast('Web Serial non disponible (Utilisez Chrome/Edge ou le bouton GPS Externe OS)', true);
+                return;
+            }
+            try {
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+                state.serialPort = port;
+                state.gnssSource = 'serial';
+                document.getElementById('simuNudgePad').classList.add('hidden');
+                document.getElementById('simuHintBanner').classList.add('hidden');
+                showToast('Port Série NMEA ouvert (115200 bauds) ! Lecture $GNGGA...');
+
+                const textDecoder = new TextDecoderStream();
+                port.readable.pipeTo(textDecoder.writable);
+                const reader = textDecoder.readable.getReader();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += value;
+                    const lines = buffer.split(/\r?\n/);
+                    buffer = lines.pop();
+                    for (const line of lines) {
+                        if (line.startsWith('$GPGGA') || line.startsWith('$GNGGA')) {
+                            parseNmeaGga(line);
+                        }
+                    }
+                }
+            } catch (e) {
+                showToast('Connexion NMEA annulée ou interrompue', true);
+            }
+        }
+
+        function parseNmeaGga(sentence) {
+            const parts = sentence.split(',');
+            if (parts.length < 10) return;
+            const rawLat = parts[2];
+            const latDir = parts[3];
+            const rawLon = parts[4];
+            const lonDir = parts[5];
+            const fixQual = parseInt(parts[6]) || 0;
+            const numSats = parseInt(parts[7]) || 0;
+            const hdop = parseFloat(parts[8]) || 1.0;
+
+            if (!rawLat || !rawLon) return;
+            const latDeg = parseInt(rawLat.slice(0, 2)) + parseFloat(rawLat.slice(2)) / 60.0;
+            const lonDeg = parseInt(rawLon.slice(0, 3)) + parseFloat(rawLon.slice(3)) / 60.0;
+
+            state.rover.lat = latDir === 'S' ? -latDeg : latDeg;
+            state.rover.lon = lonDir === 'W' ? -lonDeg : lonDeg;
+            state.rover.sats = numSats;
+            state.rover.hdop = hdop;
+
+            if (fixQual === 4) {
+                state.rover.fixType = 'RTK FIX';
+                state.rover.accuracy = 0.014;
+            } else if (fixQual === 5) {
+                state.rover.fixType = 'RTK FLOAT';
+                state.rover.accuracy = 0.15;
+            } else if (fixQual === 2) {
+                state.rover.fixType = 'DGPS';
+                state.rover.accuracy = 0.60;
+            } else {
+                state.rover.fixType = 'GPS SINGLE';
+                state.rover.accuracy = 1.80;
+            }
+            updateRoverTelemetryAndGuidance();
+        }
+
+        /* ============================================================================
+         * 7. STAKEOUT ACTIONS, AUDIO BEEP & LIST MANAGEMENT
+         * ============================================================================ */
+        function selectStake(stakeId) {
+            state.activeStakeId = stakeId;
+            renderMapGeometry();
+            renderStakeList();
+            updateRoverTelemetryAndGuidance();
+        }
+
+        function selectPrevNextStake(delta) {
+            if (state.stakes.length === 0) return;
+            const idx = state.stakes.findIndex(s => s.id === state.activeStakeId);
+            const nextIdx = (idx + delta + state.stakes.length) % state.stakes.length;
+            selectStake(state.stakes[nextIdx].id);
+        }
+
+        function selectNearestUnstaked() {
+            const unstaked = state.stakes.filter(s => !s.staked);
+            if (unstaked.length === 0) {
+                showToast('Tous les piquets ont déjà été implantés !');
+                return;
+            }
+            let best = unstaked[0];
+            let bestDist = Infinity;
+            unstaked.forEach(s => {
+                const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, s.lat, s.lon);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    best = s;
+                }
+            });
+            selectStake(best.id);
+            showToast(`Cible la plus proche : ${best.label} (${bestDist.toFixed(2)} m)`);
+        }
+
+        function validateCurrentStake() {
+            const target = state.stakes.find(s => s.id === state.activeStakeId);
+            if (!target) return;
+
+            const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, target.lat, target.lon);
+            target.staked = true;
+            target.stakedAccuracyCm = parseFloat((dist * 100).toFixed(1));
+            target.stakedTime = new Date().toLocaleTimeString('fr-FR');
+
+            playValidationChord();
+            showToast(`Piquet ${target.label} validé (Écart: ${target.stakedAccuracyCm} cm)`);
+
+            // Automatically advance to the nearest remaining unstaked point
+            const remaining = state.stakes.filter(s => !s.staked);
+            if (remaining.length > 0) {
+                selectNearestUnstaked();
+            } else {
+                renderMapGeometry();
+                renderStakeList();
+            }
+        }
+
+        function recordQuickSinglePoint() {
+            const num = state.stakes.filter(s => s.isManual).length + 1;
+            const id = `RELEVE-${num}`;
+            const l93 = wgs84ToLambert93(state.rover.lat, state.rover.lon);
+            const newPt = {
+                id,
+                label: id,
+                plotCode: 'Levé Libre',
+                corner: 'Point Topo',
+                xLocal: 0,
+                yLocal: 0,
+                lat: state.rover.lat,
+                lon: state.rover.lon,
+                xL93: l93.x,
+                yL93: l93.y,
+                staked: true,
+                stakedAccuracyCm: parseFloat((state.rover.accuracy * 100).toFixed(1)),
+                stakedTime: new Date().toLocaleTimeString('fr-FR'),
+                isManual: true
+            };
+            state.stakes.push(newPt);
+            state.activeStakeId = id;
+            renderMapGeometry();
+            renderStakeList();
+            updateRoverTelemetryAndGuidance();
+            showToast(`Point topographique ${id} enregistré !`);
+        }
+
+        function renderStakeList() {
+            const container = document.getElementById('stakeListContainer');
+            const search = (document.getElementById('inpSearchStake').value || '').toLowerCase();
+            const filter = document.getElementById('selFilterStake').value;
+
+            const total = state.stakes.length;
+            const doneCount = state.stakes.filter(s => s.staked).length;
+            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+            document.getElementById('tabStakeCount').textContent = total;
+            document.getElementById('uiProgressText').textContent = `${doneCount} / ${total} (${pct}%)`;
+            document.getElementById('uiProgressBar').style.width = `${pct}%`;
+
+            const filtered = state.stakes.filter(s => {
+                if (filter === 'todo' && s.staked) return false;
+                if (filter === 'done' && !s.staked) return false;
+                if (search && !s.label.toLowerCase().includes(search) && !s.plotCode.toLowerCase().includes(search)) return false;
+                return true;
+            });
+
+            container.innerHTML = filtered.map(s => {
+                const isActive = s.id === state.activeStakeId;
+                const { dist } = wgs84ToEnu(state.rover.lat, state.rover.lon, s.lat, s.lon);
+                const distStr = dist < 1 ? `${(dist * 100).toFixed(1)} cm` : `${dist.toFixed(2)} m`;
+
+                return `
+                <div onclick="selectStake('${s.id}')" class="p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between ${
+                    isActive
+                        ? 'bg-amber-500/15 border-amber-400/80 shadow'
+                        : (s.staked ? 'bg-slate-950/60 border-emerald-800/50' : 'bg-slate-950 border-slate-800 hover:border-slate-700')
+                }">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
+                            s.staked ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : (isActive ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400')
+                        }">
+                            ${s.staked ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-location-crosshairs"></i>'}
+                        </span>
+                        <div>
+                            <div class="text-xs font-mono-tech font-bold text-white flex items-center gap-2">
+                                <span>${s.label}</span>
+                                <span class="text-[10px] font-sans font-normal text-slate-400">${s.corner}</span>
+                            </div>
+                            <div class="text-[10px] font-mono-tech text-slate-400">
+                                L93: ${s.xL93.toFixed(2)}, ${s.yL93.toFixed(2)}
+                                ${s.staked ? `<span class="text-emerald-400 ml-1">• Validé (±${s.stakedAccuracyCm}cm)</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs font-mono-tech font-bold ${isActive ? 'text-amber-300' : 'text-slate-300'}">${distStr}</div>
+                        <div class="text-[10px] text-slate-500">vers cible</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        /* ============================================================================
+         * 8. WEB AUDIO PROXIMITY SYNTHESIZER & SIMULATOR CONTROLS
+         * ============================================================================ */
+        function toggleAudioBeep() {
+            state.audioEnabled = !state.audioEnabled;
+            const btn = document.getElementById('btnAudioToggle');
+            const icon = document.getElementById('iconAudio');
+            if (state.audioEnabled) {
+                if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                btn.className = 'p-2 rounded-lg text-xs bg-emerald-600 text-white border border-emerald-400 transition';
+                icon.className = 'fa-solid fa-volume-high';
+                showToast('Bip sonore d\'approche centimétrique activé');
+            } else {
+                btn.className = 'p-2 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition';
+                icon.className = 'fa-solid fa-volume-xmark';
+            }
+        }
+
+        function handleProximityAudio(distMeters, isWithinTolerance) {
+            if (!state.audioEnabled || !state.audioCtx || distMeters > 1.5) return;
+            const now = performance.now();
+            const intervalMs = isWithinTolerance ? 160 : Math.max(200, Math.min(900, distMeters * 600));
+            if (now - state.lastBeepTime < intervalMs) return;
+            state.lastBeepTime = now;
+
+            const osc = state.audioCtx.createOscillator();
+            const gain = state.audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = isWithinTolerance ? 1320 : 660;
+            gain.gain.setValueAtTime(0.08, state.audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, state.audioCtx.currentTime + 0.09);
+            osc.connect(gain);
+            gain.connect(state.audioCtx.destination);
+            osc.start();
+            osc.stop(state.audioCtx.currentTime + 0.09);
+        }
+
+        function playValidationChord() {
+            if (!state.audioEnabled || !state.audioCtx) return;
+            const osc = state.audioCtx.createOscillator();
+            const gain = state.audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(880, state.audioCtx.currentTime);
+            osc.frequency.setValueAtTime(1760, state.audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.12, state.audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, state.audioCtx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(state.audioCtx.destination);
+            osc.start();
+            osc.stop(state.audioCtx.currentTime + 0.25);
+        }
+
+        // Nudge simulated rover by (dRightMeters, dForwardMeters) along trial axis or cardinal
+        function nudgeRover(dRight, dFwd) {
+            if (state.gnssSource !== 'simulation') switchGnssSource('simulation');
+            const azRad = state.guidanceRef === 'axis' ? (state.baseline.azimuthDeg * Math.PI / 180.0) : 0;
+            const dEast = dFwd * Math.sin(azRad) + dRight * Math.cos(azRad);
+            const dNorth = dFwd * Math.cos(azRad) - dRight * Math.sin(azRad);
+            const nextPos = enuToWgs84(state.rover.lat, state.rover.lon, dEast, dNorth);
+            state.rover.lat = nextPos.lat;
+            state.rover.lon = nextPos.lon;
+            updateRoverTelemetryAndGuidance();
+        }
+
+        function snapRoverToTarget() {
+            const target = state.stakes.find(s => s.id === state.activeStakeId);
+            if (!target) return;
+            if (state.gnssSource !== 'simulation') switchGnssSource('simulation');
+            // Place simulated antenna within 0.8 cm of the target stake
+            const nextPos = enuToWgs84(target.lat, target.lon, 0.005, -0.006);
+            state.rover.lat = nextPos.lat;
+            state.rover.lon = nextPos.lon;
+            updateRoverTelemetryAndGuidance();
+        }
+
+        /* ============================================================================
+         * 9. UI HELPERS & EXPORT / IMPORT FUNCTIONS (CSV, GEOJSON, KML)
+         * ============================================================================ */
+        function switchSidebarTab(tab) {
+            ['grid', 'stakes', 'export'].forEach(t => {
+                const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+                const content = document.getElementById('tabContent' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (t === tab) {
+                    btn.className = 'py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-slate-800 text-emerald-400 shadow';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'py-2 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200';
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        function setGuidanceRef(ref) {
+            state.guidanceRef = ref;
+            document.getElementById('btnRefAxis').className = ref === 'axis'
+                ? 'px-2 py-0.5 rounded-md bg-emerald-600 text-white font-semibold text-[10px]'
+                : 'px-2 py-0.5 rounded-md text-slate-400 hover:text-white font-semibold text-[10px]';
+            document.getElementById('btnRefCardinal').className = ref === 'cardinal'
+                ? 'px-2 py-0.5 rounded-md bg-emerald-600 text-white font-semibold text-[10px]'
+                : 'px-2 py-0.5 rounded-md text-slate-400 hover:text-white font-semibold text-[10px]';
+            updateRoverTelemetryAndGuidance();
+        }
+
+        function setPointFromRover(which) {
+            if (which === 'A') {
+                document.getElementById('inpALat').value = state.rover.lat.toFixed(7);
+                document.getElementById('inpALon').value = state.rover.lon.toFixed(7);
+            } else {
+                document.getElementById('inpBLat').value = state.rover.lat.toFixed(7);
+                document.getElementById('inpBLon').value = state.rover.lon.toFixed(7);
+            }
+            onBaselineInputChange();
+            showToast(`Point ${which} capturé sur la position GPS actuelle !`);
+        }
+
+        function startMapPick(which) {
+            state.mapPickMode = which;
+            document.getElementById('mapPickText').textContent = `Cliquez sur la carte pour placer le Point ${which}`;
+            document.getElementById('mapPickBanner').classList.remove('hidden');
+        }
+
+        function cancelMapPick() {
+            state.mapPickMode = null;
+            document.getElementById('mapPickBanner').classList.add('hidden');
+        }
+
+        function centerOnRover() {
+            map.setView([state.rover.lat, state.rover.lon], Math.max(map.getZoom(), 20));
+        }
+
+        function fitTrialBounds() {
+            if (state.stakes.length === 0) return;
+            const latlngs = state.stakes.map(s => [s.lat, s.lon]);
+            map.fitBounds(L.latLngBounds(latlngs), { padding: [45, 45], maxZoom: 21 });
+        }
+
+        function toggleMapLayer() {
+            map.removeLayer(baseLayers[state.currentLayerIndex]);
+            state.currentLayerIndex = (state.currentLayerIndex + 1) % baseLayers.length;
+            baseLayers[state.currentLayerIndex].addTo(map);
+            const names = ['IGN Orthophoto France', 'Esri World Imagery', 'OpenStreetMap'];
+            showToast(`Fond de carte : ${names[state.currentLayerIndex]}`);
+        }
+
+        function toggleLabelsOnMap() {
+            state.showMapLabels = !state.showMapLabels;
+            renderMapGeometry();
+        }
+
+        function resetAllStakesStatus() {
+            state.stakes.forEach(s => {
+                s.staked = false;
+                s.stakedAccuracyCm = null;
+                s.stakedTime = null;
+            });
+            renderMapGeometry();
+            renderStakeList();
+            showToast('Statut de tous les piquets réinitialisé');
+        }
+
+        function downloadFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportStakesCSV() {
+            const headers = ['ID;Parcelle;Coin;Latitude_WGS84;Longitude_WGS84;X_Lambert93_m;Y_Lambert93_m;X_Local_m;Y_Local_m;Statut;Ecart_cm;Heure'];
+            const rows = state.stakes.map(s => [
+                s.label,
+                s.plotCode,
+                s.corner,
+                s.lat.toFixed(8),
+                s.lon.toFixed(8),
+                s.xL93.toFixed(3),
+                s.yL93.toFixed(3),
+                s.xLocal.toFixed(3),
+                s.yLocal.toFixed(3),
+                s.staked ? 'IMPLANTE' : 'A_FAIRE',
+                s.stakedAccuracyCm !== null ? s.stakedAccuracyCm : '',
+                s.stakedTime || ''
+            ].join(';'));
+            downloadFile('piquetage_essai_rtk.csv', '\uFEFF' + headers.concat(rows).join('\r\n'), 'text/csv;charset=utf-8;');
+            showToast('Fichier CSV (WGS84 + Lambert-93) téléchargé');
+        }
+
+        function exportTrialGeoJSON() {
+            const features = [];
+            state.plots.forEach(p => {
+                const ring = p.coords.map(c => [c[1], c[0]]);
+                ring.push(ring[0]);
+                features.push({
+                    type: 'Feature',
+                    properties: { type: 'parcelle', code: p.code, numero_agro: p.agroNo, bloc: p.block },
+                    geometry: { type: 'Polygon', coordinates: [ring] }
+                });
+            });
+            state.stakes.forEach(s => {
+                features.push({
+                    type: 'Feature',
+                    properties: {
+                        type: 'piquet',
+                        id: s.label,
+                        parcelle: s.plotCode,
+                        x_lambert93: Number(s.xL93.toFixed(3)),
+                        y_lambert93: Number(s.yL93.toFixed(3)),
+                        implante: s.staked,
+                        ecart_cm: s.stakedAccuracyCm
+                    },
+                    geometry: { type: 'Point', coordinates: [s.lon, s.lat] }
+                });
+            });
+            const geojson = JSON.stringify({ type: 'FeatureCollection', features }, null, 2);
+            downloadFile('piquetage_essai_rtk.geojson', geojson, 'application/geo+json');
+            showToast('Fichier GeoJSON (Parcelles + Piquets) téléchargé');
+        }
+
+        function exportTrialKML() {
+            const placemarks = state.stakes.map(s => `
+                <Placemark>
+                    <name>${s.label}</name>
+                    <description>Parcelle: ${s.plotCode} | L93: ${s.xL93.toFixed(2)}, ${s.yL93.toFixed(2)}</description>
+                    <Point><coordinates>${s.lon.toFixed(8)},${s.lat.toFixed(8)},0</coordinates></Point>
+                </Placemark>`).join('');
+            const kml = `<?xml version="1.0" encoding="UTF-8"?>
+            <kml xmlns="http://www.opengis.net/kml/2.2">
+                <Document><name>Piquetage Essai RTK</name>${placemarks}</Document>
+            </kml>`;
+            downloadFile('piquetage_essai_rtk.kml', kml, 'application/vnd.google-earth.kml+xml');
+            showToast('Fichier KML téléchargé');
+        }
+
+        function importStakesCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const lines = e.target.result.split(/\r?\n/).filter(l => l.trim().length > 0);
+                let imported = 0;
+                lines.forEach((line, idx) => {
+                    if (idx === 0 && line.toLowerCase().includes('lat')) return;
+                    const parts = line.split(/[;,]/);
+                    if (parts.length >= 3) {
+                        const label = parts[0].trim();
+                        const lat = parseFloat(parts[1]);
+                        const lon = parseFloat(parts[2]);
+                        if (!isNaN(lat) && !isNaN(lon)) {
+                            const l93 = wgs84ToLambert93(lat, lon);
+                            state.stakes.push({
+                                id: `IMP-${imported + 1}-${label}`,
+                                label,
+                                plotCode: 'Import CSV',
+                                corner: 'Point importé',
+                                xLocal: 0,
+                                yLocal: 0,
+                                lat,
+                                lon,
+                                xL93: l93.x,
+                                yL93: l93.y,
+                                staked: false,
+                                stakedAccuracyCm: null,
+                                stakedTime: null,
+                                isManual: true
+                            });
+                            imported++;
+                        }
+                    }
+                });
+                renderMapGeometry();
+                renderStakeList();
+                fitTrialBounds();
+                showToast(`${imported} piquets importés avec succès`);
+            };
+            reader.readAsText(file);
+        }
+
+        function showToast(msg, isError = false) {
+            const box = document.getElementById('toastBox');
+            const icon = document.getElementById('toastIcon');
+            document.getElementById('toastMsg').textContent = msg;
+            icon.className = isError ? 'fa-solid fa-triangle-exclamation text-amber-400 text-sm' : 'fa-solid fa-check-circle text-emerald-400 text-sm';
+            box.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => box.classList.add('hidden'), 3200);
+        }
+
+        // Keyboard shortcuts for field tablet / rugged laptop
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                validateCurrentStake();
+            } else if (e.code === 'ArrowUp') {
+                e.preventDefault();
+                nudgeRover(0, 0.01);
+            } else if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                nudgeRover(0, -0.01);
+            } else if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                nudgeRover(-0.01, 0);
+            } else if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                nudgeRover(0.01, 0);
+            }
+        });
+
+        window.onload = function () {
+            initMap();
+            onBaselineInputChange();
+            fitTrialBounds();
+        };
+    </script>
+</body>
+</html>
