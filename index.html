@@ -256,15 +256,83 @@
                         Comment souhaitez-vous connecter l'antenne sur votre téléphone ?
                     </label>
                     <div class="grid grid-cols-2 gap-2">
-                        <button type="button" id="tab-phone-usb" onclick="switchPhoneConnTab('usb')" class="p-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition">
-                            <i class="fa-brands fa-usb text-blue-600 text-base"></i>
-                            <span>Option 1 : Câble USB Direct</span>
-                            <span class="text-[9px] font-semibold text-blue-700">FT232R OTG + Centipede intégré</span>
-                        </button>
-                        <button type="button" id="tab-phone-swmaps" onclick="switchPhoneConnTab('swmaps')" class="p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition">
+                        <button type="button" id="tab-phone-swmaps" onclick="switchPhoneConnTab('swmaps')" class="p-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition">
                             <i class="fa-solid fa-location-dot text-emerald-600 text-base"></i>
-                            <span>Option 2 : Via SW Maps</span>
-                            <span class="text-[9px] font-normal text-slate-500">SW Maps gère l'USB & Centipede</span>
+                            <span>Option 1 : Via SW Maps</span>
+                            <span class="text-[9px] font-semibold text-emerald-700">Méthode 100% fiable avec Centipede</span>
+                        </button>
+                        <button type="button" id="tab-phone-usb" onclick="switchPhoneConnTab('usb')" class="p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition">
+                            <i class="fa-brands fa-usb text-blue-600 text-base"></i>
+                            <span>Option 2 : Câble USB Web</span>
+                            <span class="text-[9px] font-normal text-slate-500">Expérimental (Sans RTK Centipede)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ============================================================= -->
+                <!-- OPTION 1 : PASSER PAR SW MAPS SUR LE TÉLÉPHONE (MOCK LOCATION)-->
+                <!-- ============================================================= -->
+                <div id="phone-panel-swmaps" class="space-y-3">
+                    <div class="bg-emerald-50/80 border-2 border-emerald-400 rounded-xl p-3.5 space-y-3 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-extrabold text-emerald-950 uppercase tracking-wide flex items-center gap-1.5">
+                                <i class="fa-solid fa-mobile-screen-button text-emerald-600 text-sm"></i>
+                                Utiliser la correction RTK de SW Maps
+                            </h3>
+                            <span class="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-extrabold">Recommandé</span>
+                        </div>
+
+                        <p class="text-[11px] text-slate-700 leading-relaxed">
+                            C'est la <strong>seule méthode fiable</strong> car les navigateurs web bloquent l'accès direct aux serveurs Centipede (TCP). Laissez <strong>SW Maps</strong> gérer l'antenne et la correction, puis transmettez la précision centimétrique à cette page :
+                        </p>
+
+                        <ol class="text-[11px] text-slate-800 space-y-2 bg-white border border-emerald-200 rounded-xl p-2.5 list-decimal list-inside font-medium">
+                            <li>Ouvrez <strong>SW Maps</strong>, connectez l'antenne et le NTRIP Centipede jusqu'à voir <strong class="text-emerald-700">RTK FIX</strong>.</li>
+                            <li>Dans SW Maps, activez l'option <strong>« Enable Mock Location / Position Fictive »</strong>.</li>
+                            <li>Dans les paramètres développeur Android, autorisez SW Maps comme <strong>Application de position fictive</strong>.</li>
+                            <li>Revenez sur cette page et appuyez ci-dessous :</li>
+                        </ol>
+
+                        <button onclick="connectOSGeolocation()" class="w-full py-3.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
+                            <i class="fa-solid fa-satellite-dish text-base"></i>
+                            <span>Lier l'application à SW Maps (RTK Centimétrique)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ============================================================= -->
+                <!-- OPTION 2 : CÂBLE USB OTG DIRECT (LIMITÉ CAR SANS CENTIPEDE)   -->
+                <!-- ============================================================= -->
+                <div id="phone-panel-usb" class="hidden space-y-3">
+                    <div class="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 space-y-2.5 shadow-sm">
+                        <div class="flex items-center gap-2 text-amber-900 text-xs font-extrabold mb-1">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            Limites du mode WebUSB
+                        </div>
+                        <p class="text-[10px] text-amber-800 leading-snug">
+                            Ce mode permet de lire l'antenne en direct, mais <strong>sans correction Centipede</strong> (les pages web ne peuvent pas se connecter au serveur TCP Centipede). Veillez à bien <strong>fermer SW Maps</strong> avant de cliquer.
+                        </p>
+
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                                <label class="text-[10px] text-slate-600 font-bold block mb-0.5">Modèle récepteur</label>
+                                <div class="bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800">
+                                    u-blox (FT232R)
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-600 font-bold block mb-0.5">Vitesse (Baud Rate)</label>
+                                <select id="usb-baud-select" onchange="changeUsbBaudRate(this.value)" class="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-xs font-mono-tech font-bold text-slate-900">
+                                    <option value="AUTO" selected>Auto (38400 / 115200)</option>
+                                    <option value="38400">38400 bauds (Standard)</option>
+                                    <option value="115200">115200 bauds (Rapide)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="connectPhoneUsbOtg()" id="btn-connect-phone-usb" class="w-full py-3 px-3 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
+                            <i class="fa-brands fa-usb text-base"></i>
+                            <span>Connecter l'antenne FT232R USB UART</span>
                         </button>
                     </div>
                 </div>
@@ -2161,16 +2229,16 @@
             const bUsb = document.getElementById('tab-phone-usb');
             const bSw = document.getElementById('tab-phone-swmaps');
 
-            if (tab === 'usb') {
+            if (tab === 'swmaps') {
+                pSw.classList.remove('hidden');
+                pUsb.classList.add('hidden');
+                bSw.className = "p-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition";
+                bUsb.className = "p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition";
+            } else {
                 pUsb.classList.remove('hidden');
                 pSw.classList.add('hidden');
                 bUsb.className = "p-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition";
                 bSw.className = "p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition";
-            } else {
-                pUsb.classList.add('hidden');
-                pSw.classList.remove('hidden');
-                bSw.className = "p-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition";
-                bUsb.className = "p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition";
             }
         }
 
@@ -2239,30 +2307,47 @@
                     await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x03, value: divisor & 0xFFFF, index: (divisor >> 16) & 0xFFFF });
                     await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x01, value: 0x0303, index: 0 });
 
+                    // Recherche dynamique du point d'entrée IN (Endpoint)
+                    const iface = device.configuration.interfaces[0].alternate;
+                    let endpointInNum = 1;
+                    if (iface && iface.endpoints) {
+                        const epIn = iface.endpoints.find(e => e.direction === 'in');
+                        if (epIn) endpointInNum = epIn.endpointNumber;
+                    }
+
                     state.usb.device = device;
                     state.usb.reading = true;
                     state.rover.source = 'webusb';
-                    showToast(`Antenne USB OTG connectée (${baud} bauds)`);
+                    showToast(`Antenne connectée (${baud} bd) - SANS Centipede`);
 
                     const decoder = new TextDecoder();
                     let buffer = '';
                     while (state.usb.reading && device.opened) {
-                        const res = await device.transferIn(1, 64);
-                        if (res.data && res.data.byteLength > 2) {
-                            const payload = new Uint8Array(res.data.buffer, res.data.byteOffset + 2, res.data.byteLength - 2);
-                            buffer += decoder.decode(payload, { stream: true });
-                            const lines = buffer.split(/\r?\n/);
-                            buffer = lines.pop() || '';
-                            lines.forEach(parseNmeaLine);
+                        try {
+                            const res = await device.transferIn(endpointInNum, 64);
+                            if (res.data && res.data.byteLength > 2) {
+                                // FTDI ajoute 2 octets de statut au début de chaque paquet
+                                const payload = new Uint8Array(res.data.buffer, res.data.byteOffset + 2, res.data.byteLength - 2);
+                                buffer += decoder.decode(payload, { stream: true });
+                                const lines = buffer.split(/\r?\n/);
+                                buffer = lines.pop() || '';
+                                lines.forEach(parseNmeaLine);
+                            }
+                        } catch (err) {
+                            if (state.usb.reading) {
+                                console.error("Erreur de lecture USB", err);
+                                await new Promise(resolve => setTimeout(resolve, 100)); // Pause avant reprise
+                            }
                         }
                     }
                 } else {
-                    showToast("WebUSB non disponible dans cet aperçu : utilisez le bouton Plein Écran ou l'Option 2 (SW Maps).");
+                    showToast("WebUSB bloqué. Utilisez l'Option 1 (SW Maps) ou ouvrez un nouvel onglet.");
                     const warn = document.getElementById('iframe-usb-warning');
                     if (warn) warn.classList.remove('hidden');
                 }
             } catch (err) {
-                showToast("Connexion USB annulée ou bloquée : essayez l'Option 2 (SW Maps).");
+                console.error(err);
+                showToast("Accès USB refusé. Assurez-vous d'avoir fermé SW Maps en arrière-plan.");
             }
         }
 
