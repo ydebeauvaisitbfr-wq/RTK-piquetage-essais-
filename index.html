@@ -135,15 +135,9 @@
             </button>
 
             <!-- Voyant 1 : Antenne GPS -->
-            <button onclick="switchStep(1); if(state.mapOnlyMode) toggleMapOnlyMode();" id="header-antenna-badge" class="px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-bold flex items-center gap-1.5 hover:bg-rose-100 transition" title="État de l'antenne externe sur le téléphone">
+            <button onclick="switchStep(1); if(state.mapOnlyMode) toggleMapOnlyMode();" id="header-antenna-badge" class="px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-bold flex items-center gap-1.5 hover:bg-rose-100 transition" title="État de la localisation du téléphone">
                 <span id="antenna-dot" class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
-                <span id="antenna-header-text" class="truncate max-w-[130px] sm:max-w-none">1. Antenne : Non connectée</span>
-            </button>
-
-            <!-- Voyant 2 : Correction Centipede RTK -->
-            <button onclick="switchStep(1); if(state.mapOnlyMode) toggleMapOnlyMode();" id="header-centipede-badge" class="hidden sm:flex px-2 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-700 text-[11px] font-bold items-center gap-1.5 hover:bg-slate-200 transition" title="État de la correction Centipede RTK">
-                <span id="centipede-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
-                <span id="centipede-header-text">2. Centipede : Inactif</span>
+                <span id="antenna-header-text" class="truncate max-w-[130px] sm:max-w-none">1. GPS : Déconnecté</span>
             </button>
 
             <!-- Voyant 3 : Précision RTK -->
@@ -193,29 +187,40 @@
             </div>
 
             <!-- ================================================================= -->
-            <!-- ÉTAPE 1 : CONNEXION 100% TÉLÉPHONE (USB OTG FT232R OU SW MAPS)    -->
+            <!-- ÉTAPE 1 : CONNEXION SIMPLIFIÉE (MOCK LOCATION SMARTPHONE)         -->
             <!-- ================================================================= -->
-            <div id="step-panel-1" class="flex-1 overflow-y-auto p-3.5 space-y-3">
-
-                <!-- Alerte si la page est dans l'aperçu intégré qui bloque l'USB du téléphone -->
-                <div id="iframe-usb-warning" class="hidden rounded-xl p-3 bg-amber-50 border-2 border-amber-400 text-amber-950 space-y-2 shadow-sm">
-                    <div class="text-xs font-extrabold flex items-center gap-1.5">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
-                        Débloquez la prise USB et le GPS de votre téléphone :
-                    </div>
-                    <p class="text-[11px] text-amber-900 leading-snug">
-                        L'aperçu intégré bloque l'accès direct au câble USB OTG. Appuyez ci-dessous pour ouvrir <strong>BetaImplantationRTK</strong> en plein écran dans Chrome sur votre téléphone :
+            <div id="step-panel-1" class="flex-1 overflow-y-auto p-3.5 space-y-3.5">
+                
+                <div class="bg-blue-50 border-2 border-blue-400 rounded-xl p-3.5 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-extrabold text-blue-950 uppercase tracking-wide flex items-center gap-1.5">
+                        <i class="fa-solid fa-satellite-dish text-blue-600 text-sm"></i>
+                        Réception GPS Centimétrique
+                    </h3>
+                    <p class="text-[11px] text-blue-900 leading-relaxed font-medium">
+                        Pour obtenir la précision RTK (1 cm) sur cette page, utilisez une application dédiée en arrière-plan avec la fonction <strong>« Position Fictive » (Mock Location)</strong> :
                     </p>
-                    <button onclick="openStandaloneWindow()" class="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs shadow flex items-center justify-center gap-2 transition">
-                        <i class="fa-solid fa-up-right-from-square"></i> Ouvrir en Plein Écran sur le Téléphone (Débloquer USB)
+
+                    <div class="bg-white border border-blue-200 rounded-lg p-2.5 text-[11px] text-slate-700 space-y-1.5 shadow-sm">
+                        <div class="font-extrabold text-slate-900 mb-1"><i class="fa-solid fa-crown text-amber-500 mr-1"></i>Recommandé : Lefebure NTRIP Client</div>
+                        <ol class="list-decimal list-inside space-y-1 ml-1">
+                            <li>Ouvrez <strong>Lefebure NTRIP Client</strong> (ou SW Maps).</li>
+                            <li>Connectez l'antenne et le réseau Centipede (RTK FIX).</li>
+                            <li>Activez l'option <strong>« Enable Mock Location »</strong>.</li>
+                            <li>Revenez sur cette page et cliquez sur Démarrer :</li>
+                        </ol>
+                    </div>
+
+                    <button id="btn-connect-gps" onclick="connectOSGeolocation()" class="w-full py-3.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
+                        <i class="fa-solid fa-satellite-dish"></i>
+                        <span>Démarrer la réception GPS</span>
                     </button>
                 </div>
 
-                <!-- TABLEAU DE BORD EN DIRECT : LES 3 VOYANTS CLAIRS -->
-                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                <!-- TABLEAU DE BORD EN DIRECT -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-                            <i class="fa-solid fa-signal text-emerald-600"></i> État de connexion sur le téléphone
+                            <i class="fa-solid fa-tower-broadcast text-emerald-600"></i> Signal Reçu
                         </span>
                         <span id="bridge-status-pill" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
                             Mode Simulation
@@ -223,245 +228,24 @@
                     </div>
 
                     <div class="grid grid-cols-3 gap-2">
-                        <!-- Boîte 1 : Antenne -->
-                        <div id="box-status-ant" class="rounded-xl p-2 border-2 border-rose-300 bg-rose-50/70 text-center">
-                            <div class="text-[9px] font-extrabold uppercase text-slate-500">1. Antenne</div>
-                            <div id="diag-antenna" class="text-[11px] font-extrabold text-rose-700 mt-0.5 truncate">Non branchée</div>
-                            <div id="diag-signal-age" class="text-[9px] font-mono-tech text-slate-500 mt-0.5">0 trame</div>
+                        <div id="ui-status-box" class="bg-slate-100 border border-slate-300 rounded-xl p-2 text-center">
+                            <div class="text-[9px] font-extrabold uppercase text-slate-500">État</div>
+                            <div id="ui-status-text" class="text-[11px] font-extrabold text-slate-800 mt-0.5">Simulation</div>
                         </div>
-                        <!-- Boîte 2 : Centipede RTK -->
-                        <div id="box-status-cent" class="rounded-xl p-2 border-2 border-slate-200 bg-white text-center">
-                            <div class="text-[9px] font-extrabold uppercase text-slate-500">2. Centipede RTK</div>
-                            <div id="diag-centipede" class="text-[11px] font-extrabold text-slate-500 mt-0.5 truncate">Inactif</div>
-                            <div id="diag-rtcm-bytes" class="text-[9px] font-mono-tech text-slate-500 mt-0.5">0 Ko RTCM</div>
+                        <div id="ui-acc-box" class="bg-slate-100 border border-slate-300 rounded-xl p-2 text-center">
+                            <div class="text-[9px] font-extrabold uppercase text-slate-500">Précision</div>
+                            <div id="ui-acc-text" class="text-[11px] font-extrabold font-mono-tech text-slate-800 mt-0.5">± 1.2 cm</div>
                         </div>
-                        <!-- Boîte 3 : Précision -->
-                        <div id="box-status-fix" class="rounded-xl p-2 border-2 border-amber-300 bg-amber-50/70 text-center">
-                            <div class="text-[9px] font-extrabold uppercase text-slate-500">3. Précision</div>
-                            <div id="diag-fix-type" class="text-[11px] font-extrabold text-amber-700 mt-0.5 truncate">Simulation</div>
-                            <div id="diag-acc-cm" class="text-[9px] font-mono-tech text-slate-600 mt-0.5">± 1.2 cm</div>
+                        <div class="bg-slate-100 border border-slate-300 rounded-xl p-2 text-center">
+                            <div class="text-[9px] font-extrabold uppercase text-slate-500">Dernier signal</div>
+                            <div id="ui-time-text" class="text-[11px] font-extrabold font-mono-tech text-slate-800 mt-0.5">-</div>
                         </div>
-                    </div>
-
-                    <!-- Moniteur NMEA en direct -->
-                    <div class="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-mono-tech text-[10px] flex items-center justify-between gap-2 text-slate-600">
-                        <span id="nmea-live-line" class="truncate">En attente de l'antenne ($GNGGA)...</span>
-                        <span id="nmea-byte-counter" class="text-emerald-700 font-bold shrink-0">0 trame</span>
                     </div>
                 </div>
 
-                <!-- SÉLECTEUR DES 2 MODES SUR TÉLÉPHONE -->
-                <div class="space-y-1.5">
-                    <label class="text-[11px] font-extrabold text-slate-700 block">
-                        Comment souhaitez-vous connecter l'antenne sur votre téléphone ?
-                    </label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" id="tab-phone-swmaps" onclick="switchPhoneConnTab('swmaps')" class="p-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition">
-                            <i class="fa-solid fa-location-dot text-emerald-600 text-base"></i>
-                            <span>Option 1 : Via SW Maps</span>
-                            <span class="text-[9px] font-semibold text-emerald-700">Méthode 100% fiable avec Centipede</span>
-                        </button>
-                        <button type="button" id="tab-phone-usb" onclick="switchPhoneConnTab('usb')" class="p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition">
-                            <i class="fa-brands fa-usb text-blue-600 text-base"></i>
-                            <span>Option 2 : Câble USB Web</span>
-                            <span class="text-[9px] font-normal text-slate-500">Expérimental (Sans RTK Centipede)</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ============================================================= -->
-                <!-- OPTION 1 : PASSER PAR SW MAPS SUR LE TÉLÉPHONE (MOCK LOCATION)-->
-                <!-- ============================================================= -->
-                <div id="phone-panel-swmaps" class="space-y-3">
-                    <div class="bg-emerald-50/80 border-2 border-emerald-400 rounded-xl p-3.5 space-y-3 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-extrabold text-emerald-950 uppercase tracking-wide flex items-center gap-1.5">
-                                <i class="fa-solid fa-mobile-screen-button text-emerald-600 text-sm"></i>
-                                Utiliser la correction RTK de SW Maps
-                            </h3>
-                            <span class="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-extrabold">Recommandé</span>
-                        </div>
-
-                        <p class="text-[11px] text-slate-700 leading-relaxed">
-                            C'est la <strong>seule méthode fiable</strong> car les navigateurs web bloquent l'accès direct aux serveurs Centipede (TCP). Laissez <strong>SW Maps</strong> gérer l'antenne et la correction, puis transmettez la précision centimétrique à cette page :
-                        </p>
-
-                        <ol class="text-[11px] text-slate-800 space-y-2 bg-white border border-emerald-200 rounded-xl p-2.5 list-decimal list-inside font-medium">
-                            <li>Ouvrez <strong>SW Maps</strong>, connectez l'antenne et le NTRIP Centipede jusqu'à voir <strong class="text-emerald-700">RTK FIX</strong>.</li>
-                            <li>Dans SW Maps, activez l'option <strong>« Enable Mock Location / Position Fictive »</strong>.</li>
-                            <li>Dans les paramètres développeur Android, autorisez SW Maps comme <strong>Application de position fictive</strong>.</li>
-                            <li>Revenez sur cette page et appuyez ci-dessous :</li>
-                        </ol>
-
-                        <button onclick="connectOSGeolocation()" class="w-full py-3.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
-                            <i class="fa-solid fa-satellite-dish text-base"></i>
-                            <span>Lier l'application à SW Maps (RTK Centimétrique)</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ============================================================= -->
-                <!-- OPTION 2 : CÂBLE USB OTG DIRECT (LIMITÉ CAR SANS CENTIPEDE)   -->
-                <!-- ============================================================= -->
-                <div id="phone-panel-usb" class="hidden space-y-3">
-                    <div class="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 space-y-2.5 shadow-sm">
-                        <div class="flex items-center gap-2 text-amber-900 text-xs font-extrabold mb-1">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                            Limites du mode WebUSB
-                        </div>
-                        <p class="text-[10px] text-amber-800 leading-snug">
-                            Ce mode permet de lire l'antenne en direct, mais <strong>sans correction Centipede</strong> (les pages web ne peuvent pas se connecter au serveur TCP Centipede). Veillez à bien <strong>fermer SW Maps</strong> avant de cliquer.
-                        </p>
-
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <div>
-                                <label class="text-[10px] text-slate-600 font-bold block mb-0.5">Modèle récepteur</label>
-                                <div class="bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800">
-                                    u-blox (FT232R)
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-600 font-bold block mb-0.5">Vitesse (Baud Rate)</label>
-                                <select id="usb-baud-select" onchange="changeUsbBaudRate(this.value)" class="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-xs font-mono-tech font-bold text-slate-900">
-                                    <option value="AUTO" selected>Auto (38400 / 115200)</option>
-                                    <option value="38400">38400 bauds (Standard)</option>
-                                    <option value="115200">115200 bauds (Rapide)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button onclick="connectPhoneUsbOtg()" id="btn-connect-phone-usb" class="w-full py-3 px-3 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
-                            <i class="fa-brands fa-usb text-base"></i>
-                            <span>Connecter l'antenne FT232R USB UART</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ============================================================= -->
-                <!-- OPTION 1 : CÂBLE USB OTG DIRECT SUR TÉLÉPHONE (COMME SW MAPS) -->
-                <!-- ============================================================= -->
-                <div id="phone-panel-usb" class="space-y-3">
-
-                    <!-- ÉTAPE A : CONNEXION USB OTG FT232R -->
-                    <div class="bg-white border-2 border-blue-200 rounded-xl p-3 space-y-2.5 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
-                                <span class="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center font-black">A</span>
-                                Brancher l'antenne FT232R en USB sur le téléphone
-                            </h3>
-                            <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">USB OTG</span>
-                        </div>
-
-                        <p class="text-[11px] text-slate-600 leading-snug">
-                            Branchez votre antenne sur la prise USB du téléphone. <strong>Important : fermez complètement l'application SW Maps</strong> pour qu'elle ne garde pas l'antenne verrouillée.
-                        </p>
-
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[10px] text-slate-600 font-bold block mb-0.5">Modèle récepteur</label>
-                                <div class="bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800">
-                                    u-blox RTK (FT232R)
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-slate-600 font-bold block mb-0.5">Vitesse (Baud Rate)</label>
-                                <select id="usb-baud-select" onchange="changeUsbBaudRate(this.value)" class="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-xs font-mono-tech font-bold text-slate-900">
-                                    <option value="AUTO" selected>Auto (38400 / 115200)</option>
-                                    <option value="38400">38400 bauds (Standard)</option>
-                                    <option value="115200">115200 bauds (Rapide)</option>
-                                    <option value="57600">57600 bauds</option>
-                                    <option value="9600">9600 bauds</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button onclick="connectPhoneUsbOtg()" id="btn-connect-phone-usb" class="w-full py-3 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
-                            <i class="fa-brands fa-usb text-base"></i>
-                            <span>1. Connecter l'antenne FT232R USB UART</span>
-                        </button>
-                    </div>
-
-                    <!-- ÉTAPE B : CLIENT NTRIP CENTIPEDE RTK -->
-                    <div class="bg-emerald-50/70 border-2 border-emerald-300 rounded-xl p-3 space-y-2.5 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                                <span class="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] flex items-center justify-center font-black">B</span>
-                                Activer la correction Centipede RTK (1 cm)
-                            </h3>
-                            <button onclick="findNearestCentipedeBase()" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold shadow-sm transition">
-                                <i class="fa-solid fa-location-crosshairs mr-1"></i>Base la + proche
-                            </button>
-                        </div>
-
-                        <div class="grid grid-cols-12 gap-2">
-                            <div class="col-span-8">
-                                <label class="text-[10px] text-emerald-900 font-bold block mb-0.5">Point de montage (Base Centipede)</label>
-                                <select id="ntrip-mount-select" onchange="onSelectCentipedeBase(this.value)" class="w-full bg-white border border-emerald-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800">
-                                    <option value="BOVES">BOVES — Somme (80) [Proche Moreuil]</option>
-                                    <option value="AMIENS">AMIENS — Somme (80)</option>
-                                    <option value="ESTREES">ESTREES-MONS — Somme (80)</option>
-                                    <option value="ABBEVILLE">ABBEVILLE — Somme (80)</option>
-                                    <option value="BEAUVAIS">BEAUVAIS — Oise (60)</option>
-                                    <option value="COMPIEGNE">COMPIÈGNE — Oise (60)</option>
-                                    <option value="ARRAS">ARRAS — Pas-de-Calais (62)</option>
-                                    <option value="LILLE">LILLE — Nord (59)</option>
-                                    <option value="REIMS">REIMS — Marne (51)</option>
-                                    <option value="ROUEN">ROUEN — Seine-Maritime (76)</option>
-                                </select>
-                            </div>
-                            <div class="col-span-4">
-                                <label class="text-[10px] text-emerald-900 font-bold block mb-0.5">Code Base</label>
-                                <input id="ntrip-mount" type="text" value="BOVES" onchange="onSelectCentipedeBase(this.value)" class="w-full bg-white border border-emerald-400 rounded-lg px-2 py-1.5 text-xs font-mono-tech text-emerald-800 font-extrabold uppercase text-center">
-                            </div>
-                        </div>
-
-                        <div class="text-[10px] text-emerald-800 bg-white/80 border border-emerald-200 rounded-lg px-2.5 py-1.5 font-mono-tech flex items-center justify-between">
-                            <span>Serveur: <strong>caster.centipede.fr:2101</strong></span>
-                            <span>Login: <strong>centipede / centipede</strong></span>
-                        </div>
-
-                        <button onclick="startPhoneCentipedeStream()" id="btn-start-centipede" class="w-full py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
-                            <i class="fa-solid fa-tower-broadcast text-sm"></i>
-                            <span>2. Connecter Centipede RTK & Injecter dans l'antenne</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ============================================================= -->
-                <!-- OPTION 2 : PASSER PAR SW MAPS SUR LE TÉLÉPHONE                -->
-                <!-- ============================================================= -->
-                <div id="phone-panel-swmaps" class="hidden space-y-3">
-                    <div class="bg-emerald-50/80 border-2 border-emerald-400 rounded-xl p-3.5 space-y-3 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-xs font-extrabold text-emerald-950 uppercase tracking-wide flex items-center gap-1.5">
-                                <i class="fa-solid fa-mobile-screen-button text-emerald-600 text-sm"></i>
-                                Utiliser la connexion RTK de SW Maps
-                            </h3>
-                            <span class="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-extrabold">100% Fiable</span>
-                        </div>
-
-                        <p class="text-[11px] text-slate-700 leading-relaxed">
-                            Puisque vous avez déjà <strong>SW Maps</strong> sur votre téléphone, c'est la méthode la plus stable car SW Maps gère directement le câble USB <code>FT232R</code> et le serveur <code>caster.centipede.fr:2101</code> :
-                        </p>
-
-                        <ol class="text-[11px] text-slate-800 space-y-1.5 bg-white border border-emerald-200 rounded-xl p-2.5 list-decimal list-inside font-medium">
-                            <li>Ouvrez <strong>SW Maps</strong> sur votre téléphone.</li>
-                            <li>Connectez votre antenne <strong>FT232R USB UART</strong> et le <strong>NTRIP Client Centipede</strong> jusqu'à voir <strong>RTK FIX</strong>.</li>
-                            <li>Dans SW Maps, activez <strong>« Enable Mock Location / Position fictive »</strong>.</li>
-                            <li>Revenez ici et appuyez sur le bouton vert ci-dessous :</li>
-                        </ol>
-
-                        <button onclick="connectOSGeolocation()" class="w-full py-3.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
-                            <i class="fa-solid fa-satellite-dish text-base"></i>
-                            <span>Recevoir la position RTK (1 cm) depuis SW Maps</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- MODE SIMULATION POUR PRÉPARER AU BUREAU -->
                 <div class="bg-slate-100 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between">
-                    <span class="text-xs text-slate-600 font-medium">Préparer vos essais sans antenne :</span>
-                    <button onclick="enableSimulationMode()" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs shadow-sm flex items-center gap-1.5 transition">
+                    <span class="text-[11px] text-slate-600 font-medium">Test sans antenne :</span>
+                    <button onclick="enableSimulationMode()" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-[11px] shadow-sm flex items-center gap-1.5 transition">
                         <i class="fa-solid fa-gamepad text-purple-600"></i> Mode Simulation
                     </button>
                 </div>
@@ -1363,106 +1147,91 @@
             const ageSec = state.lastRealPacketTime ? ((now - state.lastRealPacketTime) / 1000) : 999;
             const isReceivingLive = !isSim && ageSec < 5.0;
 
-            const boxAnt = document.getElementById('box-status-ant');
-            const boxCent = document.getElementById('box-status-cent');
-            const boxFix = document.getElementById('box-status-fix');
-
-            const diagAnt = document.getElementById('diag-antenna');
-            const diagSig = document.getElementById('diag-signal-age');
-            const diagCent = document.getElementById('diag-centipede');
-            const diagRtcm = document.getElementById('diag-rtcm-bytes');
-            const diagFix = document.getElementById('diag-fix-type');
-            const diagAcc = document.getElementById('diag-acc-cm');
-            const pillPort = document.getElementById('bridge-status-pill');
-
             const headerAntBadge = document.getElementById('header-antenna-badge');
             const headerAntDot = document.getElementById('antenna-dot');
             const headerAntText = document.getElementById('antenna-header-text');
-            const headerCentBadge = document.getElementById('header-centipede-badge');
-            const headerCentDot = document.getElementById('centipede-dot');
-            const headerCentText = document.getElementById('centipede-header-text');
             const simDpad = document.getElementById('sim-dpad');
+            const pillPort = document.getElementById('bridge-status-pill');
+
+            // Mise à jour de l'UI simplifiée de l'étape 1
+            const uiStatus = document.getElementById('ui-status-text');
+            const uiStatusBox = document.getElementById('ui-status-box');
+            const uiAcc = document.getElementById('ui-acc-text');
+            const uiAccBox = document.getElementById('ui-acc-box');
+            const uiTime = document.getElementById('ui-time-text');
+            const btnConnect = document.getElementById('btn-connect-gps');
 
             if (isReceivingLive) {
                 if (simDpad) simDpad.classList.add('hidden');
-                const srcName = state.rover.source === 'webusb' ? `USB OTG (${state.activeBaudRate || 38400} bd)` : 'SW Maps / Tél';
-
-                boxAnt.className = 'rounded-xl p-2 border-2 border-emerald-500 bg-emerald-50 text-center';
-                diagAnt.textContent = srcName;
-                diagAnt.className = 'text-[11px] font-extrabold text-emerald-800 mt-0.5 truncate';
-                diagSig.textContent = `${state.nmeaPacketsCount} trames (${ageSec.toFixed(1)}s)`;
+                
+                if (uiStatus) {
+                    uiStatus.textContent = "Connecté";
+                    uiStatusBox.className = "bg-emerald-50 border border-emerald-300 rounded-xl p-2 text-center";
+                }
+                if (uiAcc) {
+                    uiAcc.textContent = `± ${state.rover.accuracyCm.toFixed(1)} cm`;
+                    if (state.rover.accuracyCm <= 10) {
+                        uiAccBox.className = "bg-emerald-50 border border-emerald-300 rounded-xl p-2 text-center";
+                    } else if (state.rover.accuracyCm <= 100) {
+                        uiAccBox.className = "bg-amber-50 border border-amber-300 rounded-xl p-2 text-center";
+                    } else {
+                        uiAccBox.className = "bg-rose-50 border border-rose-300 rounded-xl p-2 text-center";
+                    }
+                }
+                if (uiTime) uiTime.textContent = `${ageSec.toFixed(1)} s`;
 
                 if (pillPort) {
-                    pillPort.textContent = `Connecté : ${srcName}`;
+                    pillPort.textContent = `GPS Actif`;
                     pillPort.className = 'text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold';
                 }
 
-                headerAntBadge.className = 'px-2 py-1.5 rounded-lg bg-emerald-50 border border-emerald-400 text-emerald-900 text-[11px] font-extrabold flex items-center gap-1.5 transition';
-                headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 rtk-pulse shrink-0';
-                headerAntText.textContent = `1. Antenne : ${srcName}`;
+                if (headerAntBadge) {
+                    headerAntBadge.className = 'px-2 py-1.5 rounded-lg bg-emerald-50 border border-emerald-400 text-emerald-900 text-[11px] font-extrabold flex items-center gap-1.5 transition';
+                    headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 rtk-pulse shrink-0';
+                    headerAntText.textContent = `1. GPS : Connecté`;
+                }
+                
+                if (btnConnect) {
+                    btnConnect.innerHTML = '<i class="fa-solid fa-stop"></i> Arrêter la réception GPS';
+                    btnConnect.className = "w-full py-3.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition";
+                    btnConnect.onclick = disconnectOSGeolocation;
+                }
             } else {
                 if (simDpad) simDpad.classList.remove('hidden');
-                boxAnt.className = 'rounded-xl p-2 border-2 border-rose-300 bg-rose-50/70 text-center';
-                diagAnt.textContent = 'Non branchée';
-                diagAnt.className = 'text-[11px] font-extrabold text-rose-700 mt-0.5 truncate';
-                diagSig.textContent = 'Mode Simulation';
+                
+                if (uiStatus) {
+                    uiStatus.textContent = "Simulation";
+                    uiStatusBox.className = "bg-slate-100 border border-slate-300 rounded-xl p-2 text-center";
+                }
+                if (uiAcc) {
+                    uiAcc.textContent = `± 1.2 cm`;
+                    uiAccBox.className = "bg-slate-100 border border-slate-300 rounded-xl p-2 text-center";
+                }
+                if (uiTime) uiTime.textContent = `-`;
 
                 if (pillPort) {
                     pillPort.textContent = 'Mode Simulation';
                     pillPort.className = 'text-[10px] px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold';
                 }
 
-                headerAntBadge.className = 'px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-bold flex items-center gap-1.5 transition';
-                headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
-                headerAntText.textContent = '1. Antenne : Non connectée';
-            }
-
-            if (state.ntrip.connected || state.ntrip.rtcmBytesReceived > 0) {
-                const kb = (state.ntrip.rtcmBytesReceived / 1024).toFixed(1);
-                boxCent.className = 'rounded-xl p-2 border-2 border-emerald-500 bg-emerald-50 text-center';
-                diagCent.textContent = `Base ${state.ntrip.mount} OK`;
-                diagCent.className = 'text-[11px] font-extrabold text-emerald-800 mt-0.5 truncate';
-                diagRtcm.textContent = `${kb} Ko RTCM injectés`;
-
-                if (headerCentBadge) {
-                    headerCentBadge.className = 'hidden sm:flex px-2 py-1.5 rounded-lg bg-emerald-50 border border-emerald-400 text-emerald-900 text-[11px] font-extrabold items-center gap-1.5 transition';
-                    headerCentDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 rtk-pulse shrink-0';
-                    headerCentText.textContent = `2. Centipede : ${state.ntrip.mount} (${kb} Ko)`;
+                if (headerAntBadge) {
+                    headerAntBadge.className = 'px-2 py-1.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-bold flex items-center gap-1.5 transition';
+                    headerAntDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
+                    headerAntText.textContent = '1. GPS : Déconnecté';
                 }
-            } else {
-                boxCent.className = 'rounded-xl p-2 border-2 border-slate-200 bg-white text-center';
-                diagCent.textContent = state.ntrip.connecting ? 'Connexion...' : 'Inactif';
-                diagCent.className = 'text-[11px] font-extrabold text-slate-500 mt-0.5 truncate';
-                diagRtcm.textContent = '0 Ko RTCM';
-
-                if (headerCentBadge) {
-                    headerCentBadge.className = 'hidden sm:flex px-2 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-700 text-[11px] font-bold items-center gap-1.5 transition';
-                    headerCentDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
-                    headerCentText.textContent = '2. Centipede : Inactif';
+                
+                if (btnConnect) {
+                    btnConnect.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Démarrer la réception GPS';
+                    btnConnect.className = "w-full py-3.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition";
+                    btnConnect.onclick = connectOSGeolocation;
                 }
             }
 
-            if (isReceivingLive) {
-                if (state.rover.fixQuality === 4) {
-                    boxFix.className = 'rounded-xl p-2 border-2 border-emerald-500 bg-emerald-50 text-center';
-                    diagFix.textContent = 'RTK FIX (1 cm)';
-                    diagFix.className = 'text-[11px] font-extrabold text-emerald-800 mt-0.5 truncate';
-                } else if (state.rover.fixQuality === 5) {
-                    boxFix.className = 'rounded-xl p-2 border-2 border-amber-400 bg-amber-50 text-center';
-                    diagFix.textContent = 'RTK FLOAT';
-                    diagFix.className = 'text-[11px] font-extrabold text-amber-800 mt-0.5 truncate';
-                } else {
-                    boxFix.className = 'rounded-xl p-2 border-2 border-rose-300 bg-rose-50 text-center';
-                    diagFix.textContent = 'GPS Simple';
-                    diagFix.className = 'text-[11px] font-extrabold text-rose-700 mt-0.5 truncate';
-                }
-                diagAcc.textContent = `± ${state.rover.accuracyCm.toFixed(1)} cm (${state.rover.sats} sat)`;
-            } else {
-                boxFix.className = 'rounded-xl p-2 border-2 border-amber-300 bg-amber-50/70 text-center';
-                diagFix.textContent = 'Simulation';
-                diagFix.className = 'text-[11px] font-extrabold text-amber-800 mt-0.5 truncate';
-                diagAcc.textContent = '± 1.2 cm (Simu)';
-            }
+            // Update header accuracy display
+            const badge = document.getElementById('fix-type-badge');
+            const accEl = document.getElementById('accuracy-val');
+            if (badge) badge.textContent = state.rover.fixLabel;
+            if (accEl) accEl.textContent = state.rover.accuracyCm.toFixed(1);
         }
 
         // ============================================================================
@@ -2220,146 +1989,17 @@
         }
 
         // ============================================================================
-        // 8b. CONNEXION ANTENNE SUR TÉLÉPHONE (USB OTG & SW MAPS)
+        // 8b. CONNEXION ANTENNE SUR TÉLÉPHONE (SIMPLIFIÉE)
         // ============================================================================
-        function switchPhoneConnTab(tab) {
-            state.phoneConnTab = tab;
-            const pUsb = document.getElementById('phone-panel-usb');
-            const pSw = document.getElementById('phone-panel-swmaps');
-            const bUsb = document.getElementById('tab-phone-usb');
-            const bSw = document.getElementById('tab-phone-swmaps');
 
-            if (tab === 'swmaps') {
-                pSw.classList.remove('hidden');
-                pUsb.classList.add('hidden');
-                bSw.className = "p-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-50 text-emerald-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition";
-                bUsb.className = "p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition";
-            } else {
-                pUsb.classList.remove('hidden');
-                pSw.classList.add('hidden');
-                bUsb.className = "p-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 text-blue-950 font-extrabold text-xs flex flex-col items-center gap-1 shadow-sm transition";
-                bSw.className = "p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1 hover:bg-slate-50 transition";
+        function disconnectOSGeolocation() {
+            if (state.osWatchId !== null) {
+                navigator.geolocation.clearWatch(state.osWatchId);
+                state.osWatchId = null;
             }
-        }
-
-        function changeUsbBaudRate(val) {
-            state.usb.baudChoice = val;
-            showToast(`Vitesse USB réglée sur : ${val}`);
-        }
-
-        function openStandaloneWindow() {
-            const htmlContent = document.documentElement.outerHTML;
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-        }
-
-        function parseNmeaCoord(rawVal, hemi) {
-            if (!rawVal) return NaN;
-            const dotIdx = rawVal.indexOf('.');
-            if (dotIdx < 2) return NaN;
-            const deg = parseFloat(rawVal.slice(0, dotIdx - 2));
-            const min = parseFloat(rawVal.slice(dotIdx - 2));
-            let res = deg + (min / 60.0);
-            if (hemi === 'S' || hemi === 'W') res = -res;
-            return res;
-        }
-
-        function parseNmeaLine(line) {
-            const clean = line.trim();
-            if (!clean.startsWith('$')) return;
-            const liveLineEl = document.getElementById('nmea-live-line');
-            const counterEl = document.getElementById('nmea-byte-counter');
-
-            if (clean.includes('GGA')) {
-                const parts = clean.split(',');
-                const lat = parseNmeaCoord(parts[2], parts[3]);
-                const lon = parseNmeaCoord(parts[4], parts[5]);
-                const fixQ = parseInt(parts[6], 10) || 1;
-                const sats = parseInt(parts[7], 10) || 8;
-                const hdop = parseFloat(parts[8]) || 1.0;
-                const alt = parseFloat(parts[9]) || 0.0;
-
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    state.lastRealPacketTime = Date.now();
-                    state.nmeaPacketsCount++;
-                    state.rover.lastGgaRaw = clean;
-                    if (liveLineEl) liveLineEl.textContent = clean;
-                    if (counterEl) counterEl.textContent = `${state.nmeaPacketsCount} trames`;
-                    updateRoverPosition(lat, lon, alt, fixQ, sats, hdop);
-                }
-            }
-        }
-
-        async function connectPhoneUsbOtg() {
-            try {
-                if ('usb' in navigator) {
-                    const device = await navigator.usb.requestDevice({
-                        filters: [{ vendorId: 0x0403 }, { vendorId: 0x1546 }, { vendorId: 0x10C4 }]
-                    });
-                    await device.open();
-                    if (device.configuration === null) await device.selectConfiguration(1);
-                    await device.claimInterface(0);
-
-                    const baud = state.usb.baudChoice === 'AUTO' ? 38400 : (parseInt(state.usb.baudChoice, 10) || 38400);
-                    state.activeBaudRate = baud;
-                    const divisor = Math.round(3000000 / baud);
-                    await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x03, value: divisor & 0xFFFF, index: (divisor >> 16) & 0xFFFF });
-                    await device.controlTransferOut({ requestType: 'vendor', recipient: 'device', request: 0x01, value: 0x0303, index: 0 });
-
-                    // Recherche dynamique du point d'entrée IN (Endpoint)
-                    const iface = device.configuration.interfaces[0].alternate;
-                    let endpointInNum = 1;
-                    if (iface && iface.endpoints) {
-                        const epIn = iface.endpoints.find(e => e.direction === 'in');
-                        if (epIn) endpointInNum = epIn.endpointNumber;
-                    }
-
-                    state.usb.device = device;
-                    state.usb.reading = true;
-                    state.rover.source = 'webusb';
-                    showToast(`Antenne connectée (${baud} bd) - SANS Centipede`);
-
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-                    while (state.usb.reading && device.opened) {
-                        try {
-                            const res = await device.transferIn(endpointInNum, 64);
-                            if (res.data && res.data.byteLength > 2) {
-                                // FTDI ajoute 2 octets de statut au début de chaque paquet
-                                const payload = new Uint8Array(res.data.buffer, res.data.byteOffset + 2, res.data.byteLength - 2);
-                                buffer += decoder.decode(payload, { stream: true });
-                                const lines = buffer.split(/\r?\n/);
-                                buffer = lines.pop() || '';
-                                lines.forEach(parseNmeaLine);
-                            }
-                        } catch (err) {
-                            if (state.usb.reading) {
-                                console.error("Erreur de lecture USB", err);
-                                await new Promise(resolve => setTimeout(resolve, 100)); // Pause avant reprise
-                            }
-                        }
-                    }
-                } else {
-                    showToast("WebUSB bloqué. Utilisez l'Option 1 (SW Maps) ou ouvrez un nouvel onglet.");
-                    const warn = document.getElementById('iframe-usb-warning');
-                    if (warn) warn.classList.remove('hidden');
-                }
-            } catch (err) {
-                console.error(err);
-                showToast("Accès USB refusé. Assurez-vous d'avoir fermé SW Maps en arrière-plan.");
-            }
-        }
-
-        function startPhoneCentipedeStream() {
-            const mountInput = document.getElementById('ntrip-mount');
-            if (mountInput && mountInput.value.trim()) {
-                state.ntrip.mount = mountInput.value.trim().toUpperCase();
-            }
-            state.ntrip.connected = true;
-            state.ntrip.rtcmBytesReceived += 1536;
+            enableSimulationMode();
+            showToast("Réception GPS arrêtée.");
             refreshConnectionStatusUI();
-            showToast(`Flux Centipede RTK (${state.ntrip.mount}) activé`);
         }
 
         function connectOSGeolocation() {
@@ -2370,29 +2010,41 @@
             if (state.osWatchId !== null) {
                 navigator.geolocation.clearWatch(state.osWatchId);
             }
+            
+            showToast("Recherche de la position en cours...");
+            
             state.osWatchId = navigator.geolocation.watchPosition(
                 (pos) => {
                     state.rover.source = 'swmaps';
                     state.lastRealPacketTime = Date.now();
                     state.nmeaPacketsCount++;
-                    const accCm = (pos.coords.accuracy || 0.015) * 100.0;
-                    const fixQ = accCm <= 5.0 ? 4 : (accCm <= 50.0 ? 5 : 1);
+                    
+                    const accMeters = pos.coords.accuracy || 10.0;
+                    const accCm = accMeters * 100.0;
+                    
+                    // Déduction du FIX en fonction de la précision renvoyée par le téléphone
+                    let fixQ = 1;
+                    if (accCm <= 10.0) fixQ = 4; // RTK FIX (<= 10cm)
+                    else if (accCm <= 100.0) fixQ = 5; // RTK FLOAT (<= 1m)
+                    
                     state.rover.accuracyCm = accCm;
+                    
                     updateRoverPosition(
                         pos.coords.latitude,
                         pos.coords.longitude,
                         pos.coords.altitude || 68.0,
                         fixQ,
-                        18,
+                        18, // Sats simulés car non fournis par l'API web
                         Math.max(0.5, accCm / 2.0)
                     );
                 },
                 (err) => {
-                    showToast("Veuillez autoriser la localisation GPS sur le téléphone.");
+                    console.error("Erreur GPS : ", err);
+                    showToast("Erreur GPS : Activez la position sur votre téléphone.");
+                    disconnectOSGeolocation();
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
             );
-            showToast("Réception GPS / SW Maps activée !");
         }
 
         function enableSimulationMode() {
@@ -2400,10 +2052,10 @@
                 navigator.geolocation.clearWatch(state.osWatchId);
                 state.osWatchId = null;
             }
-            state.usb.reading = false;
             state.rover.source = 'simulation';
             updateRoverPosition(state.rover.lat, state.rover.lon, state.rover.alt, 4, 18, 0.6);
             showToast("Mode Simulation activé");
+            refreshConnectionStatusUI();
         }
 
         // ============================================================================
