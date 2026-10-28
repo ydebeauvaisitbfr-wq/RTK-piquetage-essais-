@@ -15,6 +15,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
+    <!-- Turf.js pour le calcul des surfaces et passages (Jalonnage) -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
@@ -97,6 +100,10 @@
         .rtk-pulse {
             animation: pulse-rtk 2s infinite;
         }
+        .empty-leaflet-icon {
+            background: none !important;
+            border: none !important;
+        }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col select-none bg-slate-50 text-slate-900">
@@ -167,22 +174,26 @@
         <aside id="main-sidebar" class="w-full lg:w-[470px] xl:w-[510px] h-[58%] lg:h-full bg-white border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col z-20 shrink-0 shadow-sm">
 
             <!-- Barre d'onglets des 4 étapes -->
-            <div class="grid grid-cols-4 gap-1.5 p-2 bg-slate-100 border-b border-slate-200 shrink-0">
-                <button onclick="switchStep(1)" id="step-btn-1" class="py-2 px-1.5 rounded-lg text-[11px] font-extrabold flex flex-col items-center gap-0.5 border border-emerald-600 bg-emerald-600 text-white shadow-sm transition">
+            <div class="grid grid-cols-5 gap-1.5 p-2 bg-slate-100 border-b border-slate-200 shrink-0">
+                <button onclick="switchStep(1)" id="step-btn-1" class="py-2 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-extrabold flex flex-col items-center gap-0.5 border border-emerald-600 bg-emerald-600 text-white shadow-sm transition">
                     <span class="text-[9px] uppercase tracking-wider opacity-90">Étape 1</span>
-                    <span class="truncate"><i class="fa-solid fa-mobile-screen-button mr-1"></i>Antenne & RTK</span>
+                    <span class="truncate"><i class="fa-solid fa-mobile-screen-button mr-1"></i>Antenne</span>
                 </button>
-                <button onclick="switchStep(2)" id="step-btn-2" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
+                <button onclick="switchStep(2)" id="step-btn-2" class="py-2 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
                     <span class="text-[9px] uppercase tracking-wider text-slate-400">Étape 2</span>
-                    <span class="truncate"><i class="fa-solid fa-route mr-1"></i>Ligne A-B & Site</span>
+                    <span class="truncate"><i class="fa-solid fa-route mr-1"></i>Ligne A-B</span>
                 </button>
-                <button onclick="switchStep(3)" id="step-btn-3" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
+                <button onclick="switchStep(3)" id="step-btn-3" class="py-2 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
                     <span class="text-[9px] uppercase tracking-wider text-slate-400">Étape 3</span>
-                    <span class="truncate"><i class="fa-solid fa-table-cells mr-1"></i>Réglage Essai</span>
+                    <span class="truncate"><i class="fa-solid fa-table-cells mr-1"></i>Essais</span>
                 </button>
-                <button onclick="switchStep(4)" id="step-btn-4" class="py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
+                <button onclick="switchStep(4)" id="step-btn-4" class="py-2 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
                     <span class="text-[9px] uppercase tracking-wider text-slate-400">Étape 4</span>
-                    <span class="truncate"><i class="fa-solid fa-location-crosshairs mr-1"></i>Allées & Piquets</span>
+                    <span class="truncate"><i class="fa-solid fa-tractor mr-1"></i>Jalonnage</span>
+                </button>
+                <button onclick="switchStep(5)" id="step-btn-5" class="py-2 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition">
+                    <span class="text-[9px] uppercase tracking-wider text-slate-400">Étape 5</span>
+                    <span class="truncate"><i class="fa-solid fa-location-crosshairs mr-1"></i>Piquets</span>
                 </button>
             </div>
 
@@ -197,20 +208,14 @@
                         Réception GPS Centimétrique
                     </h3>
                     <p class="text-[11px] text-blue-900 leading-relaxed font-medium">
-                        Pour obtenir la précision RTK (1 cm) sur cette page, utilisez une application dédiée en arrière-plan avec la fonction <strong>« Position Fictive » (Mock Location)</strong> :
+                        L'application utilise le <strong>« Mock Location » (Position Fictive)</strong> pour récupérer le signal RTK de votre antenne via l'application <strong>SW Maps</strong>.
                     </p>
 
-                    <div class="bg-white border border-blue-200 rounded-lg p-2.5 text-[11px] text-slate-700 space-y-1.5 shadow-sm">
-                        <div class="font-extrabold text-slate-900 mb-1"><i class="fa-solid fa-crown text-amber-500 mr-1"></i>Recommandé : Lefebure NTRIP Client</div>
-                        <ol class="list-decimal list-inside space-y-1 ml-1">
-                            <li>Ouvrez <strong>Lefebure NTRIP Client</strong> (ou SW Maps).</li>
-                            <li>Connectez l'antenne et le réseau Centipede (RTK FIX).</li>
-                            <li>Activez l'option <strong>« Enable Mock Location »</strong>.</li>
-                            <li>Revenez sur cette page et cliquez sur Démarrer :</li>
-                        </ol>
-                    </div>
+                    <button onclick="document.getElementById('modal-tuto-swmaps').classList.remove('hidden')" class="w-full py-2 px-3 rounded-lg bg-white border border-blue-300 hover:bg-blue-50 text-blue-800 text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-book-open"></i> 📖 Tutoriel : Configurer SW Maps & Téléphone
+                    </button>
 
-                    <button id="btn-connect-gps" onclick="connectOSGeolocation()" class="w-full py-3.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition">
+                    <button id="btn-connect-gps" onclick="connectOSGeolocation()" class="w-full py-3.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition mt-2">
                         <i class="fa-solid fa-satellite-dish"></i>
                         <span>Démarrer la réception GPS</span>
                     </button>
@@ -340,39 +345,62 @@
                         <span id="live-dist-from-a" class="font-extrabold text-emerald-400 text-sm">0.00 m (Az: 0.0°)</span>
                     </div>
 
-                    <!-- Point B -->
-                    <div class="bg-white border-2 border-blue-300 rounded-xl p-2.5 space-y-2 shadow-sm">
-                        <div class="flex items-center justify-between flex-wrap gap-1">
+                    <!-- Point B Unifié (GPS ou Cap) -->
+                    <div class="bg-white border-2 border-blue-300 rounded-xl p-2.5 space-y-2 shadow-sm mt-1">
+                        <div class="flex items-center justify-between flex-wrap gap-1 border-b border-blue-100 pb-2">
                             <span class="text-xs font-extrabold text-blue-800 flex items-center gap-1.5">
                                 <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-black">B</span>
-                                Point B (Fin de ligne sous l'antenne RTK)
+                                Point B (Fin de ligne)
                             </span>
-                            <span id="badge-status-b" class="text-[10px] font-mono-tech font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                                Prêt à enregistrer
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                            <button type="button" onclick="capturePointFromRover('B', false)" id="btn-rtk-capture-b" class="sm:col-span-2 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-md transition">
-                                <i class="fa-solid fa-satellite-dish text-sm"></i>
-                                <span>Enregistrer Point B (Position Antenne RTK)</span>
-                            </button>
-                            <button type="button" onclick="capturePointFromRover('B', true)" id="btn-rtk-avg-b" class="py-2 px-2.5 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-950 border border-blue-400 text-[11px] font-extrabold flex items-center justify-center gap-1 transition" title="Calcule la moyenne de la position de l'antenne pendant 3 secondes">
-                                <i class="fa-solid fa-hourglass-half"></i> Moyenne 3s
-                            </button>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[9px] text-slate-500 font-bold">Latitude B (WGS84)</label>
-                                <input id="input-b-lat" type="number" step="0.0000001" value="49.7748200" oninput="onManualABInput()" onchange="onManualABInput()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-mono-tech text-slate-900 font-bold">
-                            </div>
-                            <div>
-                                <label class="text-[9px] text-slate-500 font-bold">Longitude B (WGS84)</label>
-                                <input id="input-b-lon" type="number" step="0.0000001" value="2.4844500" oninput="onManualABInput()" onchange="onManualABInput()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-mono-tech text-slate-900 font-bold">
+                            
+                            <!-- Sélecteur de mode GPS / Cap INTÉGRÉ dans Point B -->
+                            <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-300">
+                                <button id="btn-mode-b-gps" onclick="setABMode('gps')" class="px-2 py-1 rounded text-[10px] font-extrabold bg-white text-blue-700 shadow-sm transition">📍 GPS</button>
+                                <button id="btn-mode-b-cap" onclick="setABMode('cap')" class="px-2 py-1 rounded text-[10px] font-bold text-slate-500 hover:text-slate-700 transition">🧭 Cap</button>
                             </div>
                         </div>
-                        <div id="point-b-l93" class="text-[10px] font-mono-tech text-slate-500">Lambert-93 : X = 663102.18 m | Y = 6964215.45 m</div>
+
+                        <!-- CONTENU MODE GPS -->
+                        <div id="div-mode-b-gps" class="space-y-2 pt-1">
+                            <div class="flex items-center justify-between flex-wrap gap-1">
+                                <span class="text-[10px] font-bold text-slate-500">Position sous l'antenne RTK</span>
+                                <span id="badge-status-b" class="text-[10px] font-mono-tech font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                                    Prêt à enregistrer
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                                <button type="button" onclick="capturePointFromRover('B', false)" id="btn-rtk-capture-b" class="sm:col-span-2 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-md transition">
+                                    <i class="fa-solid fa-satellite-dish text-sm"></i>
+                                    <span>Enregistrer Point B</span>
+                                </button>
+                                <button type="button" onclick="capturePointFromRover('B', true)" id="btn-rtk-avg-b" class="py-2 px-2.5 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-950 border border-blue-400 text-[11px] font-extrabold flex items-center justify-center gap-1 transition" title="Calcule la moyenne de la position de l'antenne pendant 3 secondes">
+                                    <i class="fa-solid fa-hourglass-half"></i> Moyenne 3s
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[9px] text-slate-500 font-bold">Latitude B</label>
+                                    <input id="input-b-lat" type="number" step="0.0000001" value="49.7748200" oninput="onManualABInput()" onchange="onManualABInput()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-mono-tech text-slate-900 font-bold">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 font-bold">Longitude B</label>
+                                    <input id="input-b-lon" type="number" step="0.0000001" value="2.4844500" oninput="onManualABInput()" onchange="onManualABInput()" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-mono-tech text-slate-900 font-bold">
+                                </div>
+                            </div>
+                            <div id="point-b-l93" class="text-[10px] font-mono-tech text-slate-500">Lambert-93 : X = 663102.18 m | Y = 6964215.45 m</div>
+                        </div>
+
+                        <!-- CONTENU MODE CAP (AZIMUT) -->
+                        <div id="div-mode-b-cap" class="hidden space-y-2 pt-1">
+                            <div class="bg-purple-50 p-2.5 rounded-xl border border-purple-200">
+                                <label class="text-[10px] text-purple-900 font-bold block mb-1">Projeter B via un Cap (Azimut en °)</label>
+                                <div class="flex gap-2">
+                                    <input id="input-b-cap" type="number" step="0.01" placeholder="Ex: 90.5" oninput="onManualCapInput()" onchange="onManualCapInput()" class="flex-1 bg-white border border-purple-300 rounded px-2 py-1.5 text-xs font-mono-tech text-purple-900 font-bold">
+                                    <button onclick="onManualCapInput()" class="px-3 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded shadow-sm transition">Projeter</button>
+                                </div>
+                                <p class="text-[9px] text-purple-700 leading-tight mt-1.5">Le point B sera automatiquement projeté à 100m du point A dans la direction de cet azimut.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Boutons de sauvegarde de la plateforme -->
@@ -382,6 +410,9 @@
                         </button>
                         <button onclick="saveCurrentPlatform(true)" class="py-2.5 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition">
                             <i class="fa-solid fa-copy"></i> Enregistrer en Copie
+                        </button>
+                        <button onclick="createNewPlatformClearAB()" class="col-span-2 py-2.5 px-3 rounded-xl bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-emerald-900 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition" title="Créer une nouvelle plateforme et effacer la ligne A-B">
+                            <i class="fa-solid fa-file-circle-plus"></i> Nouvelle Plateforme (Effacer A-B)
                         </button>
                     </div>
                 </div>
@@ -433,6 +464,12 @@
                             <i class="fa-solid fa-layer-group"></i> 1. Essais de la Plateforme
                         </h3>
                         <div class="flex gap-1">
+                            <button onclick="openGridModal()" class="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition" title="Générer plusieurs essais (Grille)">
+                                <i class="fa-solid fa-table"></i> Grille
+                            </button>
+                            <button onclick="addChainedTrialSide()" class="px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition" title="Créer un essai parallèle à côté">
+                                <i class="fa-solid fa-arrows-left-right"></i> À côté
+                            </button>
                             <button onclick="addNewTrial()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm transition">
                                 <i class="fa-solid fa-plus"></i> Nouvel Essai
                             </button>
@@ -622,8 +659,13 @@
                 </div>
 
                 <!-- 3. DIMENSIONS DES BLOCS, PARCELLES & PARCELLES ENTRE ESSAIS -->
-                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
-                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5 relative mt-4">
+                    <!-- Bandeau indicateur de l'essai actif pour les réglages -->
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-extrabold px-3 py-1 rounded-full shadow-sm whitespace-nowrap flex items-center gap-1.5 z-10">
+                        <i class="fa-solid fa-sliders"></i> Dimensions pour : <span id="lbl-active-trial-dims" class="text-amber-400">E1</span>
+                    </div>
+                    
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-blue-700 flex items-center gap-1.5 pt-2">
                         <i class="fa-solid fa-ruler-combined"></i> 3. Blocs, Parcelles & Parcelles entre Essais
                     </h3>
 
@@ -673,6 +715,13 @@
                             </button>
                         </div>
 
+                        <!-- BOUTON ÉGALISER LES LONGUEURS -->
+                        <div class="mt-2 mb-1 text-right">
+                            <button type="button" onclick="equalizeTrialLengths()" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold shadow-sm transition" title="Ajoute des bordures pour que tous les essais finissent à la même longueur">
+                                ⚖️ Égaliser la longueur de tous les essais
+                            </button>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="text-[9px] text-purple-900 font-bold block mb-0.5">Nb parcelles entre essais (après)</label>
@@ -695,17 +744,101 @@
                             </label>
                         </div>
                     </div>
+
+                    <!-- SURFACE CALCULÉE -->
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center justify-between text-[10px] shadow-sm mt-2">
+                        <div class="text-emerald-900">
+                            <span class="font-bold block">Surface Utile (Parcelles)</span>
+                            <strong id="area-net" class="text-xs font-mono-tech font-extrabold text-emerald-700">0.00 ha</strong>
+                        </div>
+                        <div class="text-emerald-900 text-right">
+                            <span class="font-bold block">Surface Totale (avec Allées)</span>
+                            <strong id="area-gross" class="text-xs font-mono-tech font-extrabold text-emerald-700">0.00 ha</strong>
+                        </div>
+                    </div>
                 </div>
 
                 <button onclick="switchStep(4)" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition">
-                    Voir les Points GPS des Centres d'Allées (Étape 4) <i class="fa-solid fa-arrow-right"></i>
+                    Passer à l'Étape 4 : Jalonnage & Passages <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
 
             <!-- ================================================================= -->
-            <!-- ÉTAPE 4 : POINTS GPS CENTRES D'ALLÉES & LISTE PIQUETS             -->
+            <!-- ÉTAPE 4 : JALONNAGE PARCELLE (NOUVEAU)                            -->
             <!-- ================================================================= -->
             <div id="step-panel-4" class="flex-1 overflow-y-auto p-3.5 space-y-3.5 hidden">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-draw-polygon"></i> 1. Contour & Bord de Départ
+                    </h3>
+                    <p class="text-[10px] text-emerald-900 leading-tight">
+                        1. Tracez le contour de la parcelle (Points GPS ou Carte).<br>
+                        2. Cliquez sur <strong>Choisir Bord Départ</strong> puis touchez le bord voulu sur la carte.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="addContourPointAntenna()" class="py-2 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold shadow-md flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-satellite-dish"></i> Point (GPS)
+                        </button>
+                        <button id="btn-contour-toggle" onclick="toggleContourMode()" class="py-2 px-2 rounded-lg bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-[10px] font-bold shadow-sm flex items-center justify-center gap-1 transition">
+                            <i class="fa-solid fa-hand-pointer"></i> Point (Carte)
+                        </button>
+                    </div>
+                    
+                    <button id="btn-jalon-edge-toggle" onclick="toggleJalonEdgeMode()" class="w-full py-2 rounded-lg bg-amber-100 border border-amber-400 text-amber-800 hover:bg-amber-200 text-[10px] font-bold shadow-sm flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-bullseye"></i> Choisir Bord Départ (Carte)
+                    </button>
+
+                    <div class="flex items-center justify-between bg-white px-2 py-1.5 rounded-lg border border-emerald-200">
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-[10px] font-bold text-slate-700">Points : <span id="contour-count" class="text-emerald-700 font-extrabold">0</span></span>
+                            <span class="text-[10px] font-bold text-slate-700">Bord de départ : <span id="jalon-edge-status" class="text-rose-600 font-extrabold">NON</span></span>
+                        </div>
+                        <button onclick="clearContour()" class="text-rose-600 text-[10px] font-bold hover:underline"><i class="fa-solid fa-trash mr-1"></i>Vider</button>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-tractor"></i> 2. Fourrières & Longs Tours
+                    </h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-[9px] text-blue-900 font-bold block mb-1">Largeur Pulvé (m)</label>
+                            <input id="jalon-width" type="number" step="1" value="24" class="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-xs font-mono-tech text-blue-900 font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-blue-900 font-bold block mb-1">Tours Fourrière</label>
+                            <input id="jalon-headlands" type="number" step="0.5" value="1" class="w-full bg-white border border-blue-300 rounded-lg px-2 py-1.5 text-xs font-mono-tech text-blue-900 font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-rose-800 font-bold block mb-1">Arrêt Fourrière (m)</label>
+                            <input id="jalon-headland-dist" type="number" step="1" value="36" class="w-full bg-white border border-rose-300 rounded-lg px-2 py-1.5 text-xs font-mono-tech text-rose-900 font-bold shadow-sm" title="Distance d'arrêt des longs tours depuis le bord">
+                        </div>
+                    </div>
+
+                    <button onclick="computeJalonnage()" class="w-full py-2.5 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-calculator"></i> Calculer les passages
+                    </button>
+
+                    <div id="jalon-results-box" class="hidden flex items-center justify-between border-t border-blue-200 pt-2 mt-2">
+                        <p class="text-[10px] text-blue-800 leading-tight">
+                            <strong class="text-blue-700 block font-extrabold"><span id="jalon-pass-count">0</span> passages générés</strong>
+                            <span class="text-slate-500">Points ajoutés au piquetage</span>
+                        </p>
+                        <button onclick="exportJalonnageCSV()" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1.5 shadow-sm transition">
+                            <i class="fa-solid fa-file-csv"></i> CSV
+                        </button>
+                    </div>
+                </div>
+                <button onclick="switchStep(5)" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition">
+                    Passer à l'Étape 5 : Piquets & Exports <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- ÉTAPE 5 : POINTS GPS CENTRES D'ALLÉES & LISTE PIQUETS             -->
+            <!-- ================================================================= -->
+            <div id="step-panel-5" class="flex-1 overflow-y-auto p-3.5 space-y-3.5 hidden">
 
                 <!-- 1. TABLEAU DES CENTRES D'ALLÉES -->
                 <div class="bg-amber-50/70 border border-amber-300 rounded-xl p-3 space-y-2">
@@ -817,6 +950,19 @@
             <div class="flex-1 relative">
                 <div id="map"></div>
 
+                <!-- Outil de Mesure Volant -->
+                <div id="measure-box" class="hidden absolute top-3 left-16 z-[400] bg-white border border-slate-300 rounded-xl p-2.5 shadow-md flex flex-col gap-1 w-48">
+                    <div class="text-xs font-bold text-slate-700 flex justify-between items-center border-b border-slate-100 pb-1">
+                        <span>Outil de Mesure</span>
+                        <button onclick="clearMeasure()" class="text-rose-600 text-xs px-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <div id="measure-val" class="text-base font-mono-tech font-extrabold text-blue-700 my-1">0.00 m</div>
+                    <div class="text-[9px] text-slate-500 leading-tight">Touchez la carte pour mesurer des distances.</div>
+                    <button onclick="addMeasurePointAntenna()" class="mt-1 py-1.5 px-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-[10px] font-bold transition">
+                        Ajouter Point (Antenne GPS)
+                    </button>
+                </div>
+
                 <!-- Bandeau flottant actif lors de la moyenne RTK 3 secondes -->
                 <div id="map-pick-banner" class="hidden absolute top-14 left-1/2 -translate-x-1/2 z-[500] bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-2xl border-2 border-white flex items-center gap-3 max-w-[92vw]">
                     <i class="fa-solid fa-satellite-dish text-base animate-ping"></i>
@@ -826,34 +972,19 @@
                     </div>
                 </div>
 
-                <!-- Contrôles rapides sur la carte (Haut Gauche) -->
-                <div class="absolute top-3 left-3 z-[400] flex flex-wrap gap-1.5">
-                    <button onclick="toggleMapOnlyMode()" id="btn-map-only-floating" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 text-xs font-extrabold shadow-md flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-maximize"></i> <span id="lbl-map-only-floating">Voir que la carte</span>
+                <!-- Contrôles rapides sur la carte (Bandeau Vertical Épuré) -->
+                <div class="absolute top-3 left-3 z-[400] flex flex-col gap-1.5">
+                    <button onclick="toggleMeasureMode()" id="btn-measure" class="w-10 h-10 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-md flex items-center justify-center text-lg transition" title="Mesurer une distance">
+                        <i class="fa-solid fa-ruler"></i>
                     </button>
-                    <button onclick="capturePointFromRover('A', false)" id="btn-float-pick-a" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white border border-emerald-700 text-xs font-extrabold shadow-md flex items-center gap-1.5 transition" title="Enregistrer le Point A à la position actuelle de l'antenne RTK">
-                        <i class="fa-solid fa-satellite-dish"></i> <span>Enregistrer A (Antenne RTK)</span>
+                    <button onclick="toggleMapBaseLayer()" class="w-10 h-10 rounded-xl bg-white hover:bg-slate-50 text-blue-600 border border-slate-300 shadow-md flex items-center justify-center text-lg transition" title="Changer fond de carte">
+                        <i class="fa-solid fa-layer-group"></i>
                     </button>
-                    <button onclick="capturePointFromRover('B', false)" id="btn-float-pick-b" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white border border-blue-700 text-xs font-extrabold shadow-md flex items-center gap-1.5 transition" title="Enregistrer le Point B à la position actuelle de l'antenne RTK">
-                        <i class="fa-solid fa-satellite-dish"></i> <span>Enregistrer B (Antenne RTK)</span>
+                    <button onclick="fitMapToTrial()" class="w-10 h-10 rounded-xl bg-white hover:bg-slate-50 text-emerald-600 border border-slate-300 shadow-md flex items-center justify-center text-lg transition" title="Centrer sur l'essai">
+                        <i class="fa-solid fa-expand"></i>
                     </button>
-                    <button onclick="togglePureMapMode()" id="btn-pure-map" class="px-2.5 py-1.5 rounded-lg bg-white/95 hover:bg-white text-slate-800 border border-slate-300 text-xs font-bold shadow-md flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-eye-slash text-amber-600"></i> <span class="hidden sm:inline">Masquer bandeaux</span>
-                    </button>
-                    <button onclick="toggleMapBaseLayer()" id="btn-map-layer" class="px-2.5 py-1.5 rounded-lg bg-white/95 hover:bg-white text-slate-800 border border-slate-300 text-xs font-bold shadow-md flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-layer-group text-blue-600"></i> <span id="lbl-map-layer">Fond : Satellite</span>
-                    </button>
-                    <button onclick="fitMapToTrial()" class="px-2.5 py-1.5 rounded-lg bg-white/95 hover:bg-white text-slate-800 border border-slate-300 text-xs font-bold shadow-md flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-expand text-emerald-600"></i> Centrer Essai
-                    </button>
-                    <button onclick="centerMapOnRover()" class="px-2.5 py-1.5 rounded-lg bg-white/95 hover:bg-white text-slate-800 border border-slate-300 text-xs font-bold shadow-md flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-location-crosshairs text-blue-600"></i> Mon Antenne
-                    </button>
-                    <button onclick="zoomToAllSavedPlatforms()" class="px-2.5 py-1.5 rounded-lg bg-white/95 hover:bg-white text-blue-800 border border-blue-300 text-xs font-bold shadow-md flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-bookmark text-blue-600"></i> Plateformes (<span id="map-btn-plat-count">0</span>)
-                    </button>
-                    <button onclick="toggleCentipedeBasesOnMap()" id="btn-map-bases" class="px-2.5 py-1.5 rounded-lg bg-white/95 hover:bg-white text-emerald-800 border border-emerald-300 text-xs font-bold shadow-md flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-tower-broadcast text-emerald-600"></i> Bases Centipede
+                    <button onclick="centerMapOnRover()" class="w-10 h-10 rounded-xl bg-white hover:bg-slate-50 text-blue-600 border border-slate-300 shadow-md flex items-center justify-center text-lg transition" title="Centrer sur mon antenne">
+                        <i class="fa-solid fa-location-crosshairs"></i>
                     </button>
                 </div>
 
@@ -905,6 +1036,174 @@
         <span id="toast-text">Opération effectuée</span>
     </div>
 
+    <!-- Modal Assistant Grille Multi-Essais -->
+    <div id="modal-grid-assistant" class="fixed inset-0 z-[99999] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-amber-500 px-4 py-3 flex items-center justify-between text-white shrink-0">
+                <h2 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-table"></i> Générateur Multi-Essais</h2>
+                <button onclick="closeGridModal()" class="hover:bg-amber-600 p-1.5 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <!-- ÉTAPE 1 : Dimensions -->
+            <div id="grid-step-1" class="p-5 flex flex-col gap-4">
+                <p class="text-[11px] leading-tight text-slate-600">Choisissez la disposition globale de votre plateforme multi-essais :</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                        <label class="font-extrabold text-slate-800 block mb-1 text-xs"><i class="fa-solid fa-arrows-left-right text-amber-500 mr-1"></i> Nb essais (Côte à côte)</label>
+                        <input id="grid-cols" type="number" min="1" max="20" value="2" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 font-bold text-base text-center text-blue-700">
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                        <label class="font-extrabold text-slate-800 block mb-1 text-xs"><i class="fa-solid fa-arrows-up-down text-amber-500 mr-1"></i> Nb essais (En longueur)</label>
+                        <input id="grid-rows" type="number" min="1" max="20" value="1" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 font-bold text-base text-center text-emerald-700">
+                    </div>
+                </div>
+                <div class="flex justify-end pt-2 border-t border-slate-100">
+                    <button onclick="goToGridStep2()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold shadow-md transition flex items-center gap-2 text-xs">
+                        Suivant <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ÉTAPE 2 : Dispositif et Réglages fins -->
+            <div id="grid-step-2" class="hidden flex-col h-full overflow-hidden">
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Schéma -->
+                        <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-col">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-extrabold text-slate-700 uppercase"><i class="fa-solid fa-map text-emerald-600 mr-1"></i> Schéma (A→B)</span>
+                                <select id="grid-order" onchange="renderGridSchema()" class="bg-slate-100 border border-slate-300 rounded text-[10px] font-bold px-1 py-0.5">
+                                    <option value="Z">Ordre en Z (Ligne par Ligne)</option>
+                                    <option value="N">Ordre en N (Colonne par Colonne)</option>
+                                </select>
+                            </div>
+                            <div id="grid-schema-container" class="flex-1 min-h-[100px] bg-slate-100 border border-slate-200 rounded-lg p-2 overflow-auto"></div>
+                        </div>
+
+                        <!-- Réglages Généraux -->
+                        <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm space-y-2">
+                            <span class="text-[10px] font-extrabold text-slate-700 uppercase mb-1 block"><i class="fa-solid fa-sliders text-blue-600 mr-1"></i> Espacements Globaux</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block">Espace Latéral (m)</label>
+                                    <input id="grid-lat-spacing" type="number" step="0.5" value="30.0" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block">Décalage A→B 1er essai</label>
+                                    <input id="grid-dist-ab" type="number" step="0.5" value="12.0" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block">Largeur Pulvérisateur</label>
+                                    <input id="grid-sprayer" type="number" step="0.5" value="24.0" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] font-bold text-slate-600 block">Distance Centres Allées</label>
+                                    <input id="grid-alley-step" type="number" step="0.5" value="10.0" class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bordures & Alignement -->
+                    <div class="bg-purple-50/50 border border-purple-200 rounded-xl p-3 shadow-sm space-y-2">
+                        <span class="text-[10px] font-extrabold text-purple-900 uppercase block"><i class="fa-solid fa-table-columns text-purple-600 mr-1"></i> Bordures (Tampons)</span>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-purple-800 block">Nb parcelles bordure AVANT (Min 6 rgs)</label>
+                                <input id="grid-front-borders" type="number" min="0" value="0" class="w-full bg-white border border-purple-300 rounded px-2 py-1 text-xs font-bold text-purple-900">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-purple-800 block">Nb parcelles bordure APRÈS (Min 6 rgs)</label>
+                                <input id="grid-rear-borders" type="number" min="0" value="0" class="w-full bg-white border border-purple-300 rounded px-2 py-1 text-xs font-bold text-purple-900">
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-700 cursor-pointer pt-1 mt-1 border-t border-purple-100">
+                            <input id="grid-equalize" type="checkbox" checked class="rounded text-purple-600">
+                            <span>⚖️ Ajouter automatiquement des bordures pour égaliser la longueur des essais</span>
+                        </label>
+                    </div>
+
+                    <!-- Tableau des essais -->
+                    <div class="bg-white border border-slate-200 rounded-xl p-2 shadow-sm overflow-x-auto">
+                        <span class="text-[10px] font-extrabold text-slate-700 uppercase mb-2 block px-1"><i class="fa-solid fa-list-ol text-amber-600 mr-1"></i> Dimensions par essai</span>
+                        <table class="w-full text-left font-mono-tech text-[10px]">
+                            <thead class="bg-slate-100 text-slate-600">
+                                <tr>
+                                    <th class="py-1 px-2">Essai</th>
+                                    <th class="py-1 px-1">Nb Blocs</th>
+                                    <th class="py-1 px-1">Parcelles/Bloc</th>
+                                    <th class="py-1 px-1">Long. Parcelle (m)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grid-trials-tbody" class="divide-y divide-slate-100 bg-white"></tbody>
+                        </table>
+                    </div>
+
+                </div>
+                <div class="bg-white border-t border-slate-200 p-3 flex justify-between gap-2 shrink-0">
+                    <button onclick="backToGridStep1()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition text-xs"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                    <button onclick="finalizeGridGeneration()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold shadow-md transition text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i> Générer la Plateforme
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal Tuto SW Maps -->
+    <div id="modal-tuto-swmaps" class="fixed inset-0 z-[99999] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-full">
+            <div class="bg-blue-600 px-4 py-3 flex items-center justify-between text-white shrink-0">
+                <h2 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-book-open"></i> Tutoriel SW Maps & Mock Location</h2>
+                <button onclick="document.getElementById('modal-tuto-swmaps').classList.add('hidden')" class="hover:bg-blue-700 p-1.5 rounded-lg transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto space-y-4 text-xs text-slate-700">
+                
+                <div class="space-y-1.5">
+                    <h3 class="font-extrabold text-emerald-700 text-sm border-b border-emerald-100 pb-1">Étape 1 : Activer le mode Développeur Android</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Allez dans les <strong>Paramètres</strong> du téléphone > <strong>À propos du téléphone</strong>.</li>
+                        <li>Tapotez <strong>7 fois de suite</strong> sur la ligne <strong>Numéro de build</strong> (ou Version de l'OS) jusqu'à voir "Vous êtes désormais développeur".</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-1.5">
+                    <h3 class="font-extrabold text-blue-700 text-sm border-b border-blue-100 pb-1">Étape 2 : Configurer "Position Fictive" (Mock Location)</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Retournez dans les Paramètres > <strong>Options pour les développeurs</strong>.</li>
+                        <li>Cherchez <strong>Sélectionner l'application de position fictive</strong>.</li>
+                        <li>Choisissez <strong>SW Maps</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-1.5">
+                    <h3 class="font-extrabold text-purple-700 text-sm border-b border-purple-100 pb-1">Étape 3 : Désactiver le "Faux GPS" Google (Crucial)</h3>
+                    <p class="text-[11px] text-slate-500 italic">C'est ce réglage qui empêche d'avoir la précision centimétrique sur le web :</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Allez dans les Paramètres > <strong>Position (Localisation)</strong> > <strong>Services de localisation</strong>.</li>
+                        <li>Désactivez <strong>Précision de la localisation Google</strong>.</li>
+                        <li>Désactivez aussi <strong>Recherche Wi-Fi</strong> et <strong>Recherche Bluetooth</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-1.5">
+                    <h3 class="font-extrabold text-amber-700 text-sm border-b border-amber-100 pb-1">Étape 4 : Lancer SW Maps</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Ouvrez SW Maps. Allez dans <strong>USB GNSS</strong>, connectez l'antenne et <strong>cochez « Enable Mock Location »</strong>.</li>
+                        <li>Allez dans <strong>NTRIP Client</strong>, connectez-vous à Centipede pour obtenir le <strong>RTK FIX</strong>.</li>
+                        <li>Revenez sur cette page Web et cliquez sur <strong>Démarrer la réception GPS</strong> !</li>
+                    </ul>
+                </div>
+
+            </div>
+            <div class="bg-slate-50 border-t border-slate-200 p-3 shrink-0">
+                <button onclick="document.getElementById('modal-tuto-swmaps').classList.add('hidden')" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-extrabold transition shadow-md">J'ai compris, fermer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========================================================================= -->
     <!-- LOGIQUE JAVASCRIPT COMPLÈTE (BETAIMPLANTATIONRTK)                         -->
     <!-- ========================================================================= -->
@@ -930,6 +1229,16 @@
         // ============================================================================
         const state = {
             step: 1,
+            measureMode: false,
+            measurePoints: [],
+            contourMode: false,
+            contourPoints: [],
+            isSelectingJalonEdge: false,
+            jalonBaseEdge: null,
+            jalon: {
+                width: 24.0,
+                headlands: 2
+            },
             phoneConnTab: 'usb',
             rover: {
                 lat: 49.7745000,
@@ -997,6 +1306,8 @@
             activeTrialIndex: 0,
             savedPlatforms: [],
             alleyCenterPoints: [],
+            trialStakes: [],
+            jalonStakes: [],
             allStakes: [],
             stakedIds: new Set(),
             activeStakeIndex: 0,
@@ -1021,6 +1332,9 @@
         let layerTrials;
         let layerAlleyCenters;
         let layerStakes;
+        let layerContour;
+        let layerJalonnage;
+        let layerMeasure;
         let roverMarker;
         let map;
         let tileSat;
@@ -1326,9 +1640,12 @@
             layerTrials = L.layerGroup().addTo(map);
             layerAlleyCenters = L.layerGroup().addTo(map);
             layerStakes = L.layerGroup().addTo(map);
+            layerContour = L.layerGroup().addTo(map);
+            layerJalonnage = L.layerGroup().addTo(map);
+            layerMeasure = L.layerGroup().addTo(map);
 
             const roverIcon = L.divIcon({
-                className: '',
+                className: 'empty-leaflet-icon',
                 html: `
                     <div class="relative flex items-center justify-center w-8 h-8 pointer-events-none">
                         <div class="absolute w-8 h-8 rounded-full bg-blue-500/35 animate-ping"></div>
@@ -1346,6 +1663,18 @@
             }).addTo(map);
 
             map.on('click', (e) => {
+                if (state.measureMode) {
+                    addMeasurePoint(e.latlng.lat, e.latlng.lng);
+                    return;
+                }
+                if (state.isSelectingJalonEdge) {
+                    selectJalonEdgeMap(e.latlng.lat, e.latlng.lng);
+                    return;
+                }
+                if (state.contourMode) {
+                    addContourPointMap(e.latlng.lat, e.latlng.lng);
+                    return;
+                }
                 if (state.rover.source === 'simulation') {
                     updateRoverPosition(e.latlng.lat, e.latlng.lng, state.rover.alt, 4, 18, 0.6);
                 }
@@ -1375,20 +1704,28 @@
         function ensureCustomAlleysArray(trial) {
             if (!Array.isArray(trial.customAlleys)) trial.customAlleys = [];
             const blocks = Math.max(1, parseInt(trial.blocks, 10) || 1);
-            while (trial.customAlleys.length < blocks) {
-                const idx = trial.customAlleys.length;
+            const requiredAlleys = blocks + 1; // +1 pour l'allée en bout de dernier bloc
+            while (trial.customAlleys.length < requiredAlleys) {
                 trial.customAlleys.push({
                     centerStep: trial.alleyCenterStep || 10.0,
                     alleyWidth: Math.max(0, (trial.alleyCenterStep || 10.0) - (trial.plotLength || 8.0)),
                     rows: trial.alleyRowsCount || 6
                 });
             }
-            if (trial.customAlleys.length > blocks) {
-                trial.customAlleys = trial.customAlleys.slice(0, blocks);
+            if (trial.customAlleys.length > requiredAlleys) {
+                trial.customAlleys = trial.customAlleys.slice(0, requiredAlleys);
             }
         }
 
         function recomputeAllGeometry() {
+            if (!state.pointA || state.pointA.lat === 0 || !state.pointB || state.pointB.lat === 0) {
+                if (layerABLine) layerABLine.clearLayers();
+                if (layerTrials) layerTrials.clearLayers();
+                if (layerAlleyCenters) layerAlleyCenters.clearLayers();
+                if (layerStakes) layerStakes.clearLayers();
+                return;
+            }
+
             const { dist, az, eastM, northM } = distanceAndAzimuth(
                 state.pointA.lat, state.pointA.lon,
                 state.pointB.lat, state.pointB.lon
@@ -1444,7 +1781,7 @@
             L.marker([state.pointB.lat, state.pointB.lon], { icon: iconB, interactive: false, zIndexOffset: 2500 }).addTo(layerABLine);
 
             state.alleyCenterPoints = [];
-            state.allStakes = [];
+            state.trialStakes = [];
 
             state.trials.forEach((trial, trialIdx) => {
                 if (typeof trial.sprayerWidth === 'undefined') trial.sprayerWidth = 24.0;
@@ -1478,7 +1815,13 @@
                 const interCount = Math.max(0, parseInt(trial.interTrialPlotsCount, 10) || 0);
                 const interWidth = Math.max(0.2, parseFloat(trial.interTrialPlotWidth) || trial.plotWidth);
                 const totalInterWidth = interCount > 0 ? (interCount * interWidth + interCount * trial.plotAlley) : 0;
-                const totalTrialAndInterWidth = totalMainPlotsWidth + totalInterWidth;
+                
+                // Intégration mathématique des bordures avant
+                const frontCount = Math.max(0, parseInt(trial.frontBordersCount, 10) || 0);
+                const totalFrontWidth = frontCount > 0 ? (frontCount * interWidth + frontCount * trial.plotAlley) : 0;
+                
+                const totalTrialAndInterWidth = totalFrontWidth + totalMainPlotsWidth + totalInterWidth;
+                const mainBlocksStartAlong = trial.offsetAlongAb + totalFrontWidth;
 
                 const sSide = (trial.sideSign === -1) ? -1 : 1;
                 const sAlong = (trial.alongSign === -1) ? -1 : 1;
@@ -1524,7 +1867,8 @@
                 const alleyGeometry = [];
                 let currentCenterDist = trial.distAbToFirstAlleyCenter;
 
-                for (let a = 1; a <= trial.blocks; a++) {
+                // Génération de N+1 allées (pour inclure l'allée après le dernier bloc)
+                for (let a = 1; a <= trial.blocks + 1; a++) {
                     let stepFromPrev = (a === 1) ? 0 : trial.alleyCenterStep;
                     let alleyFreeWidth = Math.max(0, trial.alleyCenterStep - trial.plotLength);
                     let rowsCount = trial.alleyRowsCount;
@@ -1545,7 +1889,8 @@
                     const a = ag.alleyNum;
                     const distCenterFromAB = ag.distCenterFromAB;
                     const startAlong = trial.offsetAlongAb;
-                    const endAlong = trial.offsetAlongAb + totalMainPlotsWidth;
+                    // Les points d'allées couvrent l'essai entier bordures inter-essais comprises
+                    const endAlong = trial.offsetAlongAb + totalTrialAndInterWidth;
 
                     const ptStart = trialCoordToLatLon(distCenterFromAB, startAlong);
                     const ptEnd = trialCoordToLatLon(distCenterFromAB, endAlong);
@@ -1576,7 +1921,7 @@
                     };
 
                     state.alleyCenterPoints.push(stakeStart, stakeEnd);
-                    state.allStakes.push(stakeStart, stakeEnd);
+                    state.trialStakes.push(stakeStart, stakeEnd);
 
                     const alleyLine = L.polyline([[ptStart.lat, ptStart.lon], [ptEnd.lat, ptEnd.lon]], {
                         color: '#f59e0b', weight: 2.5, dashArray: '6, 6', opacity: 0.95
@@ -1590,8 +1935,31 @@
                     const blockStartDist = ag.distCenterFromAB + halfAlley;
                     const blockEndDist = blockStartDist + trial.plotLength;
 
+                    // Bordures Avant (Tampons Avant)
+                    if (frontCount > 0) {
+                        for (let fp = 1; fp <= frontCount; fp++) {
+                            const fpStart = trial.offsetAlongAb + (fp - 1) * (interWidth + trial.plotAlley);
+                            const fpEnd = fpStart + interWidth;
+                            const p1 = trialCoordToLatLon(blockStartDist, fpStart);
+                            const p2 = trialCoordToLatLon(blockStartDist, fpEnd);
+                            const p3 = trialCoordToLatLon(blockEndDist, fpEnd);
+                            const p4 = trialCoordToLatLon(blockEndDist, fpStart);
+
+                            L.polygon([[p1.lat, p1.lon], [p2.lat, p2.lon], [p3.lat, p3.lon], [p4.lat, p4.lon]], {
+                                color: '#64748b', weight: 1.5, dashArray: '4, 4', fillColor: '#94a3b8', fillOpacity: 0.3
+                            }).addTo(layerTrials);
+
+                            if (trial.stakeInterTrialPlots) {
+                                state.trialStakes.push(
+                                    { id: `${trial.prefix}-B${b}-AVANT${fp}-G`, trialName: trial.name, type: 'BORDURE_AVANT', distFromAB: blockStartDist, alongM: fpStart, lat: p1.lat, lon: p1.lon },
+                                    { id: `${trial.prefix}-B${b}-AVANT${fp}-D`, trialName: trial.name, type: 'BORDURE_AVANT', distFromAB: blockStartDist, alongM: fpEnd, lat: p2.lat, lon: p2.lon }
+                                );
+                            }
+                        }
+                    }
+
                     for (let p = 1; p <= trial.plotsPerBlock; p++) {
-                        const plotStartAlong = trial.offsetAlongAb + (p - 1) * (trial.plotWidth + trial.plotAlley);
+                        const plotStartAlong = mainBlocksStartAlong + (p - 1) * (trial.plotWidth + trial.plotAlley);
                         const plotEndAlong = plotStartAlong + trial.plotWidth;
 
                         const p1 = trialCoordToLatLon(blockStartDist, plotStartAlong);
@@ -1606,13 +1974,13 @@
                         }).addTo(layerTrials);
 
                         if (trial.stakeMode === 'front2' || trial.stakeMode === 'all4') {
-                            state.allStakes.push(
+                            state.trialStakes.push(
                                 { id: `${trial.prefix}-B${b}-P${p}-G`, trialName: trial.name, type: 'PARCELLE_AV_G', distFromAB: blockStartDist, alongM: plotStartAlong, lat: p1.lat, lon: p1.lon },
                                 { id: `${trial.prefix}-B${b}-P${p}-D`, trialName: trial.name, type: 'PARCELLE_AV_D', distFromAB: blockStartDist, alongM: plotEndAlong, lat: p2.lat, lon: p2.lon }
                             );
                         }
                         if (trial.stakeMode === 'all4') {
-                            state.allStakes.push(
+                            state.trialStakes.push(
                                 { id: `${trial.prefix}-B${b}-P${p}-AR-D`, trialName: trial.name, type: 'PARCELLE_AR_D', distFromAB: blockEndDist, alongM: plotEndAlong, lat: p3.lat, lon: p3.lon },
                                 { id: `${trial.prefix}-B${b}-P${p}-AR-G`, trialName: trial.name, type: 'PARCELLE_AR_G', distFromAB: blockEndDist, alongM: plotStartAlong, lat: p4.lat, lon: p4.lon }
                             );
@@ -1620,13 +1988,13 @@
                     }
 
                     if (trial.stakeMode === 'corners' && trial.plotsPerBlock > 0) {
-                        const firstStartAlong = trial.offsetAlongAb;
-                        const lastEndAlong = trial.offsetAlongAb + totalMainPlotsWidth;
+                        const firstStartAlong = mainBlocksStartAlong;
+                        const lastEndAlong = mainBlocksStartAlong + totalMainPlotsWidth;
                         const c1 = trialCoordToLatLon(blockStartDist, firstStartAlong);
                         const c2 = trialCoordToLatLon(blockStartDist, lastEndAlong);
                         const c3 = trialCoordToLatLon(blockEndDist, lastEndAlong);
                         const c4 = trialCoordToLatLon(blockEndDist, firstStartAlong);
-                        state.allStakes.push(
+                        state.trialStakes.push(
                             { id: `${trial.prefix}-B${b}-COIN-AV-G`, trialName: trial.name, type: 'BLOC_COIN', distFromAB: blockStartDist, alongM: firstStartAlong, lat: c1.lat, lon: c1.lon },
                             { id: `${trial.prefix}-B${b}-COIN-AV-D`, trialName: trial.name, type: 'BLOC_COIN', distFromAB: blockStartDist, alongM: lastEndAlong, lat: c2.lat, lon: c2.lon },
                             { id: `${trial.prefix}-B${b}-COIN-AR-D`, trialName: trial.name, type: 'BLOC_COIN', distFromAB: blockEndDist, alongM: lastEndAlong, lat: c3.lat, lon: c3.lon },
@@ -1634,9 +2002,9 @@
                         );
                     }
 
-                    // Parcelles inter-essais (tampons)
+                    // Parcelles entre essais (tampons)
                     if (interCount > 0) {
-                        const baseInterAlong = trial.offsetAlongAb + totalMainPlotsWidth + trial.plotAlley;
+                        const baseInterAlong = mainBlocksStartAlong + totalMainPlotsWidth + trial.plotAlley;
                         for (let ip = 1; ip <= interCount; ip++) {
                             const ipStart = baseInterAlong + (ip - 1) * (interWidth + trial.plotAlley);
                             const ipEnd = ipStart + interWidth;
@@ -1648,11 +2016,11 @@
                             L.polygon([
                                 [ip1.lat, ip1.lon], [ip2.lat, ip2.lon], [ip3.lat, ip3.lon], [ip4.lat, ip4.lon]
                             ], {
-                                color: '#9333ea', weight: 1.5, dashArray: '4, 4', fillColor: '#a855f7', fillOpacity: 0.18
+                                color: '#64748b', weight: 1.5, dashArray: '4, 4', fillColor: '#94a3b8', fillOpacity: 0.3
                             }).addTo(layerTrials);
 
                             if (trial.stakeInterTrialPlots) {
-                                state.allStakes.push(
+                                state.trialStakes.push(
                                     { id: `${trial.prefix}-B${b}-INTER${ip}-G`, trialName: trial.name, type: 'INTER_ESSAI', distFromAB: blockStartDist, alongM: ipStart, lat: ip1.lat, lon: ip1.lon },
                                     { id: `${trial.prefix}-B${b}-INTER${ip}-D`, trialName: trial.name, type: 'INTER_ESSAI', distFromAB: blockStartDist, alongM: ipEnd, lat: ip2.lat, lon: ip2.lon }
                                 );
@@ -1660,15 +2028,40 @@
                         }
                     }
                 }
+
+                // Affichage et Calcul des Surfaces Utile / Totale
+                if (trialIdx === state.activeTrialIndex) {
+                    const elNet = document.getElementById('area-net');
+                    const elGross = document.getElementById('area-gross');
+                    if (elNet && elGross && alleyGeometry.length > 1) {
+                        const plotArea = trial.plotWidth * trial.plotLength;
+                        const interArea = trial.interTrialPlotWidth * trial.plotLength;
+                        const netAreaSqM = trial.blocks * (trial.plotsPerBlock * plotArea + trial.interTrialPlotsCount * interArea);
+                        
+                        const firstAg = alleyGeometry[0];
+                        const lastAg = alleyGeometry[alleyGeometry.length - 1];
+                        const lateralWidth = (lastAg.distCenterFromAB + lastAg.alleyWidth / 2) - (firstAg.distCenterFromAB - firstAg.alleyWidth / 2);
+                        const grossAreaSqM = totalTrialAndInterWidth * lateralWidth;
+
+                        elNet.textContent = `${(netAreaSqM / 10000).toFixed(2)} ha (${Math.round(netAreaSqM)} m²)`;
+                        elGross.textContent = `${(grossAreaSqM / 10000).toFixed(2)} ha (${Math.round(grossAreaSqM)} m²)`;
+                    }
+                }
             });
 
-            if (state.activeStakeIndex >= state.allStakes.length) state.activeStakeIndex = 0;
-
-            renderStakesOnMap();
             renderAlleyCentersTable();
+            mergeAndRenderStakes();
+        }
+
+        function mergeAndRenderStakes() {
+            state.allStakes = [...(state.trialStakes || []), ...(state.jalonStakes || [])];
+            if (state.activeStakeIndex >= state.allStakes.length) state.activeStakeIndex = 0;
+            renderStakesOnMap();
             renderStakesTable();
             updateGuidanceHUD();
             drawRadarCanvas();
+            const countEl = document.getElementById('total-stakes-count');
+            if (countEl) countEl.textContent = state.allStakes.length;
         }
 
         function renderStakesOnMap() {
@@ -1818,9 +2211,11 @@
         // ============================================================================
         function updateGuidanceHUD() {
             const liveFromAEl = document.getElementById('live-dist-from-a');
-            if (liveFromAEl && state.pointA) {
+            if (liveFromAEl && state.pointA && state.pointA.lat !== 0) {
                 const dA = distanceAndAzimuth(state.pointA.lat, state.pointA.lon, state.rover.lat, state.rover.lon);
                 liveFromAEl.textContent = `${dA.dist.toFixed(2)} m (Az: ${dA.az.toFixed(1)}°)`;
+            } else if (liveFromAEl) {
+                liveFromAEl.textContent = `0.00 m`;
             }
 
             const activeStake = state.allStakes[state.activeStakeIndex];
@@ -2039,8 +2434,13 @@
                     );
                 },
                 (err) => {
-                    console.error("Erreur GPS : ", err);
-                    showToast("Erreur GPS : Activez la position sur votre téléphone.");
+                    let errMsg = "Activez la position sur votre téléphone.";
+                    if (err.code === 1) errMsg = "Permission refusée. Autorisez le navigateur à accéder au GPS.";
+                    else if (err.code === 2) errMsg = "Position indisponible. Le GPS est-il activé ?";
+                    else if (err.code === 3) errMsg = "Délai d'attente dépassé.";
+                    
+                    console.error("Erreur GPS : ", err.message || errMsg, err);
+                    showToast("Erreur GPS : " + errMsg);
                     disconnectOSGeolocation();
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
@@ -2157,6 +2557,53 @@
             showToast("Ligne A ↔ B inversée !");
         }
 
+        // ====== NOUVELLES FONCTIONS MODE CAP (AZIMUT) ======
+        function setABMode(mode) {
+            const btnGps = document.getElementById('btn-mode-b-gps');
+            const btnCap = document.getElementById('btn-mode-b-cap');
+            const divGps = document.getElementById('div-mode-b-gps');
+            const divCap = document.getElementById('div-mode-b-cap');
+            
+            if (mode === 'gps') {
+                btnGps.className = 'px-2 py-1 rounded text-[10px] font-extrabold bg-white text-blue-700 shadow-sm transition';
+                btnCap.className = 'px-2 py-1 rounded text-[10px] font-bold text-slate-500 hover:text-slate-700 transition';
+                divGps.classList.remove('hidden');
+                divCap.classList.add('hidden');
+            } else {
+                btnCap.className = 'px-2 py-1 rounded text-[10px] font-extrabold bg-white text-purple-700 shadow-sm transition';
+                btnGps.className = 'px-2 py-1 rounded text-[10px] font-bold text-slate-500 hover:text-slate-700 transition';
+                divCap.classList.remove('hidden');
+                divGps.classList.add('hidden');
+                if (document.getElementById('input-b-cap').value !== '') {
+                    onManualCapInput();
+                }
+            }
+        }
+
+        function onManualCapInput() {
+            if (!state.pointA || state.pointA.lat === 0) return;
+            let capDeg = parseFloat(document.getElementById('input-b-cap').value);
+            if (isNaN(capDeg)) return;
+            
+            const capRad = degToRad(capDeg);
+            // Projection du point B à 100m depuis A dans la direction de l'azimut
+            const nextB = localENToLatLon(state.pointA.lat, state.pointA.lon, Math.sin(capRad) * 100.0, Math.cos(capRad) * 100.0);
+            
+            state.pointB = { lat: nextB.lat, lon: nextB.lon };
+            document.getElementById('input-b-lat').value = state.pointB.lat.toFixed(7);
+            document.getElementById('input-b-lon').value = state.pointB.lon.toFixed(7);
+            
+            recomputeAllGeometry();
+            if (map) map.panTo([state.pointA.lat, state.pointA.lon]);
+            
+            const badgeB = document.getElementById('badge-status-b');
+            if (badgeB) {
+                badgeB.textContent = `Projeté via Cap : ${capDeg}°`;
+                badgeB.className = 'text-[10px] font-mono-tech font-extrabold px-2 py-0.5 rounded-full bg-purple-600 text-white';
+            }
+        }
+        // ===================================================
+
         function updatePlatformHeader() {
             const yr = document.getElementById('plat-year').value || '2026';
             const site = document.getElementById('plat-site').value.trim();
@@ -2219,6 +2666,79 @@
             updatePlatformHeader();
             persistPlatformsToStorage();
             showToast(`Plateforme « ${site} — ${name} » enregistrée !`);
+        }
+
+        function createNewPlatformClearAB() {
+            document.getElementById('plat-site').value = '';
+            document.getElementById('plat-name').value = 'Nouvelle Plateforme';
+            state.activePlatformId = null;
+
+            // EFFACER LES POINTS A ET B
+            state.pointA = { lat: 0, lon: 0 };
+            state.pointB = { lat: 0, lon: 0 };
+            document.getElementById('input-a-lat').value = '';
+            document.getElementById('input-a-lon').value = '';
+            document.getElementById('input-b-lat').value = '';
+            document.getElementById('input-b-lon').value = '';
+            
+            const badgeA = document.getElementById('badge-status-a');
+            if (badgeA) {
+                badgeA.textContent = `Prêt à enregistrer`;
+                badgeA.className = 'text-[10px] font-mono-tech font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+            }
+            const badgeB = document.getElementById('badge-status-b');
+            if (badgeB) {
+                badgeB.textContent = `Prêt à enregistrer`;
+                badgeB.className = 'text-[10px] font-mono-tech font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800';
+            }
+
+            state.trials = [{
+                id: 'trial_' + Date.now(),
+                name: 'Essai 1',
+                prefix: 'E1',
+                color: '#059669',
+                orientation: 'parallel',
+                sideSign: 1,
+                alongSign: 1,
+                sprayerWidth: 24.0,
+                sprayerPassIndex: 1,
+                sprayerPosMode: 'axis',
+                sprayerOffsetInPass: 12.0,
+                showSprayerOnMap: true,
+                distAbToFirstAlleyCenter: 12.00,
+                alleyCenterStep: 10.00,
+                alleyRowsCount: 6,
+                customAlleysEnabled: false,
+                customAlleys: [],
+                offsetAlongAb: 5.00,
+                blocks: 4,
+                plotsPerBlock: 8,
+                plotLength: 8.00,
+                plotWidth: 1.50,
+                plotAlley: 0.00,
+                stakeMode: 'front2',
+                interTrialPlotsCount: 0,
+                interTrialPlotWidth: 1.50,
+                chainAfterPrevTrial: false,
+                stakeInterTrialPlots: true
+            }];
+
+            state.activeTrialIndex = 0;
+            state.trialStakes = [];
+            state.jalonStakes = [];
+            state.stakedIds.clear();
+            state.activeStakeIndex = 0;
+            
+            clearContour();
+            const jBox = document.getElementById('jalon-results-box');
+            if(jBox) jBox.classList.add('hidden');
+
+            updatePlatformHeader();
+            renderTrialsTabs();
+            loadActiveTrialToForm();
+            recomputeAllGeometry();
+            
+            showToast("Nouvelle plateforme prête (Ligne A-B effacée)");
         }
 
         function renderSavedPlatformsList() {
@@ -2374,6 +2894,11 @@
             if (!tr) return;
             document.getElementById('trial-name').value = tr.name;
             document.getElementById('trial-prefix').value = tr.prefix;
+            
+            // Met à jour le bandeau visuel des réglages de l'essai
+            const lblDims = document.getElementById('lbl-active-trial-dims');
+            if (lblDims) lblDims.textContent = `${tr.prefix} - ${tr.name}`;
+
             document.getElementById('trial-color').value = tr.color;
             document.getElementById('cfg-sprayer-width').value = tr.sprayerWidth;
             document.getElementById('cfg-sprayer-pass').value = tr.sprayerPassIndex;
@@ -2616,8 +3141,327 @@
             recomputeAllGeometry();
         }
 
+        function addChainedTrialSide() {
+            const base = getActiveTrial();
+            addNewTrial();
+            const tr = getActiveTrial();
+            
+            // Calcul de l'écartement latéral exact de l'essai précédent (en tenant compte de toutes ses allées)
+            let lateralSpace = 0;
+            for (let i = 1; i <= base.blocks; i++) {
+                const step = (base.customAlleysEnabled && base.customAlleys[i]) ? (parseFloat(base.customAlleys[i].centerStep) || base.alleyCenterStep) : base.alleyCenterStep;
+                lateralSpace += step;
+            }
+            
+            tr.distAbToFirstAlleyCenter = Number((base.distAbToFirstAlleyCenter + lateralSpace).toFixed(2));
+            tr.offsetAlongAb = base.offsetAlongAb;
+            tr.chainAfterPrevTrial = false;
+            loadActiveTrialToForm();
+            recomputeAllGeometry();
+            showToast("Essai ajouté à côté (adapté à la taille du précédent) !");
+        }
+
         function duplicateActiveTrial() {
             addNewTrial();
+        }
+
+        // ============================================================================
+        // MODULE GÉNÉRATEUR MULTI-ESSAIS (GRILLE AVANCÉE)
+        // ============================================================================
+        let tempGridTrials = [];
+        let gridCols = 1;
+        let gridRows = 1;
+
+        function openGridModal() {
+            document.getElementById('grid-step-1').classList.remove('hidden');
+            document.getElementById('grid-step-2').classList.add('hidden');
+            document.getElementById('modal-grid-assistant').classList.remove('hidden');
+        }
+
+        function closeGridModal() {
+            document.getElementById('modal-grid-assistant').classList.add('hidden');
+        }
+
+        function backToGridStep1() {
+            document.getElementById('grid-step-2').classList.add('hidden');
+            document.getElementById('grid-step-1').classList.remove('hidden');
+        }
+
+        function goToGridStep2() {
+            try {
+                gridCols = parseInt(document.getElementById('grid-cols').value, 10) || 1;
+                gridRows = parseInt(document.getElementById('grid-rows').value, 10) || 1;
+                
+                if (gridCols < 1) gridCols = 1;
+                if (gridRows < 1) gridRows = 1;
+
+                const base = getActiveTrial() || {};
+                tempGridTrials = [];
+                const count = gridCols * gridRows;
+
+                for (let i = 0; i < count; i++) {
+                    tempGridTrials.push({
+                        index: i,
+                        name: `Essai ${i + 1}`,
+                        prefix: `E${i + 1}`,
+                        blocks: base.blocks || 4,
+                        plotsPerBlock: base.plotsPerBlock || 8,
+                        plotLength: base.plotLength || 8.0,
+                        plotWidth: base.plotWidth || 1.5,
+                        plotAlley: base.plotAlley || 0
+                    });
+                }
+
+                // Pré-remplir les réglages généraux avec l'essai de base
+                let lateralSpace = 0;
+                let numBlocks = base.blocks || 4;
+                for (let i = 1; i <= numBlocks; i++) {
+                    lateralSpace += base.alleyCenterStep || 10;
+                }
+                
+                const elLatSpacing = document.getElementById('grid-lat-spacing');
+                const elSprayer = document.getElementById('grid-sprayer');
+                const elDistAb = document.getElementById('grid-dist-ab');
+                const elAlleyStep = document.getElementById('grid-alley-step');
+
+                if(elLatSpacing) elLatSpacing.value = lateralSpace.toFixed(1);
+                if(elSprayer) elSprayer.value = base.sprayerWidth || 24;
+                if(elDistAb) elDistAb.value = base.distAbToFirstAlleyCenter || 12;
+                if(elAlleyStep) elAlleyStep.value = base.alleyCenterStep || 10;
+
+                const step1 = document.getElementById('grid-step-1');
+                const step2 = document.getElementById('grid-step-2');
+                
+                if(step1) step1.classList.add('hidden');
+                if(step2) step2.classList.remove('hidden');
+                
+                renderGridSchema();
+                renderGridTable();
+            } catch (err) {
+                console.error("Erreur dans goToGridStep2:", err);
+                showToast("Erreur d'affichage de la grille, réessayez.");
+            }
+        }
+
+        function renderGridSchema() {
+            const container = document.getElementById('grid-schema-container');
+            const order = document.getElementById('grid-order').value;
+            
+            container.innerHTML = '';
+            container.style.display = 'grid';
+            container.style.gridTemplateColumns = `repeat(${gridCols}, minmax(0, 1fr))`;
+            container.style.gap = '8px';
+
+            // Création de la matrice visuelle
+            let matrix = Array(gridRows).fill().map(() => Array(gridCols).fill(null));
+            let counter = 0;
+
+            if (order === 'Z') {
+                for (let r = 0; r < gridRows; r++) {
+                    for (let c = 0; c < gridCols; c++) {
+                        matrix[r][c] = tempGridTrials[counter++];
+                    }
+                }
+            } else {
+                for (let c = 0; c < gridCols; c++) {
+                    for (let r = 0; r < gridRows; r++) {
+                        matrix[r][c] = tempGridTrials[counter++];
+                    }
+                }
+            }
+
+            for (let r = 0; r < gridRows; r++) {
+                for (let c = 0; c < gridCols; c++) {
+                    const t = matrix[r][c];
+                    const div = document.createElement('div');
+                    div.className = 'bg-emerald-100 border border-emerald-300 text-emerald-800 font-extrabold text-[10px] rounded p-1.5 text-center flex flex-col items-center justify-center aspect-video shadow-sm';
+                    div.innerHTML = `<span class="text-xs">${t.prefix}</span>`;
+                    container.appendChild(div);
+                }
+            }
+        }
+
+        function renderGridTable() {
+            const tbody = document.getElementById('grid-trials-tbody');
+            tbody.innerHTML = '';
+
+            tempGridTrials.forEach((t, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-1 px-1">
+                        <input type="text" value="${t.prefix}" onchange="tempGridTrials[${i}].prefix=this.value; renderGridSchema()" class="w-12 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[10px] text-center font-extrabold text-emerald-700">
+                    </td>
+                    <td class="py-1 px-1">
+                        <input type="text" value="${t.name}" onchange="tempGridTrials[${i}].name=this.value" class="w-full min-w-[100px] bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[10px] font-bold">
+                    </td>
+                    <td class="py-1 px-1 text-center">
+                        <input type="number" min="1" value="${t.blocks}" onchange="tempGridTrials[${i}].blocks=parseInt(this.value)||1" class="w-14 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[10px] text-center">
+                    </td>
+                    <td class="py-1 px-1 text-center">
+                        <input type="number" min="1" value="${t.plotsPerBlock}" onchange="tempGridTrials[${i}].plotsPerBlock=parseInt(this.value)||1" class="w-14 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[10px] text-center">
+                    </td>
+                    <td class="py-1 px-1 text-center">
+                        <input type="number" step="0.1" value="${t.plotLength}" onchange="tempGridTrials[${i}].plotLength=parseFloat(this.value)||8" class="w-16 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[10px] text-center">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function finalizeGridGeneration() {
+            const order = document.getElementById('grid-order').value;
+            const latSpacing = parseFloat(document.getElementById('grid-lat-spacing').value) || 30.0;
+            const sprayerW = parseFloat(document.getElementById('grid-sprayer').value) || 24.0;
+            const distAB = parseFloat(document.getElementById('grid-dist-ab').value) || 12.0;
+            const alleyStep = parseFloat(document.getElementById('grid-alley-step').value) || 10.0;
+            
+            const frontBorders = parseInt(document.getElementById('grid-front-borders').value, 10) || 0;
+            const rearBorders = parseInt(document.getElementById('grid-rear-borders').value, 10) || 0;
+            const equalize = document.getElementById('grid-equalize').checked;
+
+            const base = getActiveTrial();
+            const colors = ['#059669', '#2563eb', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#ea580c', '#be185d'];
+            
+            let newTrialsList = [];
+            let maxTotalLengthPerRow = Array(gridRows).fill(0);
+
+            // 1. Première passe : Création des objets et calcul des longueurs brutes
+            let counter = 0;
+            let matrix = Array(gridRows).fill().map(() => Array(gridCols).fill(null));
+
+            for (let i = 0; i < gridCols * gridRows; i++) {
+                let r, c;
+                if (order === 'Z') {
+                    r = Math.floor(i / gridCols);
+                    c = i % gridCols;
+                } else {
+                    c = Math.floor(i / gridRows);
+                    r = i % gridRows;
+                }
+
+                let tData = tempGridTrials[i];
+                let nt = JSON.parse(JSON.stringify(base)); // Copie du template global
+                
+                nt.id = 'trial_' + Date.now() + '_' + i;
+                nt.name = tData.name;
+                nt.prefix = tData.prefix;
+                nt.color = colors[i % colors.length];
+                
+                nt.blocks = tData.blocks;
+                nt.plotsPerBlock = tData.plotsPerBlock;
+                nt.plotLength = tData.plotLength;
+                
+                nt.sprayerWidth = sprayerW;
+                nt.alleyCenterStep = alleyStep;
+                nt.distAbToFirstAlleyCenter = distAB + (c * latSpacing);
+                nt.showSprayerOnMap = (c === 0 && r === 0); // Afficher le pulvé que sur le 1er
+
+                // Bordures Globales
+                nt.frontBordersCount = (r === 0) ? frontBorders : 0; // Bordure avant uniquement pour la 1ère ligne
+                nt.interTrialPlotsCount = (r === gridRows - 1) ? rearBorders : 0; // Bordure arrière de base pour la dernière ligne
+
+                // Calcul de la longueur de cet essai (Parcelles utiles + Bordures existantes)
+                let mainWidth = nt.plotsPerBlock * nt.plotWidth + Math.max(0, nt.plotsPerBlock - 1) * nt.plotAlley;
+                let frontWidth = nt.frontBordersCount * (nt.interTrialPlotWidth + nt.plotAlley);
+                let rearWidth = nt.interTrialPlotsCount * (nt.interTrialPlotWidth + nt.plotAlley);
+                nt._calcLength = frontWidth + mainWidth + rearWidth;
+
+                matrix[r][c] = nt;
+            }
+
+            // 2. Calcul du décalage longitudinal (offsetAlongAb) pour chaînage en profondeur
+            for (let c = 0; c < gridCols; c++) {
+                let currentAlong = base.offsetAlongAb || 5.0; // Départ initial de la plateforme
+                for (let r = 0; r < gridRows; r++) {
+                    let nt = matrix[r][c];
+                    nt.offsetAlongAb = currentAlong;
+                    currentAlong += nt._calcLength; // Le prochain dans la colonne commencera après
+                    
+                    // On enregistre la longueur totale max pour la ligne (utile pour l'égalisation)
+                    if (currentAlong > maxTotalLengthPerRow[r]) {
+                        maxTotalLengthPerRow[r] = currentAlong;
+                    }
+                }
+            }
+
+            // 3. Égalisation (Ajout de bordures arrière)
+            if (equalize) {
+                for (let c = 0; c < gridCols; c++) {
+                    for (let r = 0; r < gridRows; r++) {
+                        let nt = matrix[r][c];
+                        let myEnd = nt.offsetAlongAb + nt._calcLength;
+                        let targetEnd = maxTotalLengthPerRow[r];
+                        
+                        let diff = targetEnd - myEnd;
+                        if (diff > 0.1) {
+                            let plotW = nt.interTrialPlotWidth + nt.plotAlley;
+                            let plotsToAdd = Math.round(diff / plotW);
+                            nt.interTrialPlotsCount += plotsToAdd;
+                            nt._calcLength += (plotsToAdd * plotW);
+                        }
+                    }
+                }
+            }
+
+            // 4. Finalisation
+            for (let r = 0; r < gridRows; r++) {
+                for (let c = 0; c < gridCols; c++) {
+                    newTrialsList.push(matrix[r][c]);
+                }
+            }
+
+            // Remplacement total des essais actuels par la nouvelle plateforme
+            state.trials = newTrialsList;
+            state.activeTrialIndex = 0;
+            
+            closeGridModal();
+            renderTrialsTabs();
+            loadActiveTrialToForm();
+            recomputeAllGeometry();
+            
+            showToast(`Plateforme générée (${newTrialsList.length} essais alignés) !`);
+        }
+
+        function equalizeTrialLengths() {
+            if (state.trials.length <= 1) {
+                showToast("Il faut au moins 2 essais pour égaliser leurs longueurs.");
+                return;
+            }
+
+            let maxLength = 0;
+            state.trials.forEach(tr => {
+                const totalMainPlotsWidth = tr.plotsPerBlock * tr.plotWidth + Math.max(0, tr.plotsPerBlock - 1) * tr.plotAlley;
+                const interCount = Math.max(0, parseInt(tr.interTrialPlotsCount, 10) || 0);
+                const interWidth = Math.max(0.2, parseFloat(tr.interTrialPlotWidth) || tr.plotWidth);
+                const totalInterWidth = interCount > 0 ? (interCount * interWidth + interCount * tr.plotAlley) : 0;
+                const len = tr.offsetAlongAb + totalMainPlotsWidth + totalInterWidth;
+                if (len > maxLength) maxLength = len;
+            });
+
+            let modifications = 0;
+            state.trials.forEach(tr => {
+                const totalMainPlotsWidth = tr.plotsPerBlock * tr.plotWidth + Math.max(0, tr.plotsPerBlock - 1) * tr.plotAlley;
+                const interCount = Math.max(0, parseInt(tr.interTrialPlotsCount, 10) || 0);
+                const interWidth = Math.max(0.2, parseFloat(tr.interTrialPlotWidth) || tr.plotWidth);
+                const totalInterWidth = interCount > 0 ? (interCount * interWidth + interCount * tr.plotAlley) : 0;
+                const currentLen = tr.offsetAlongAb + totalMainPlotsWidth + totalInterWidth;
+
+                const diff = maxLength - currentLen;
+                if (diff > 0.1) { // Tolérance
+                    const bw = tr.interTrialPlotWidth || tr.plotWidth;
+                    const plotsToAdd = Math.round(diff / (bw + tr.plotAlley));
+                    tr.interTrialPlotsCount = (tr.interTrialPlotsCount || 0) + plotsToAdd;
+                    modifications++;
+                }
+            });
+
+            if (modifications > 0) {
+                loadActiveTrialToForm();
+                recomputeAllGeometry();
+                showToast(`Longueurs égalisées (${modifications} essai(s) ajusté(s))`);
+            } else {
+                showToast("Tous les essais sont déjà de la même longueur.");
+            }
         }
 
         function deleteActiveTrial() {
@@ -2683,6 +3527,19 @@
             downloadTextFile(JSON.stringify(fc, null, 2), 'implantation_rtk.geojson', 'application/geo+json');
         }
 
+        function exportJalonnageCSV() {
+            const lines = ['ID;Type;Latitude_WGS84;Longitude_WGS84;Lambert93_X;Lambert93_Y'];
+            state.contourPoints.forEach((p, idx) => {
+                const l93 = wgs84ToLambert93(p.lat, p.lon);
+                lines.push(`CONTOUR-${idx+1};CONTOUR_PARCELLE;${p.lat.toFixed(8)};${p.lon.toFixed(8)};${l93.x.toFixed(3)};${l93.y.toFixed(3)}`);
+            });
+            state.jalonStakes.forEach(p => {
+                const l93 = wgs84ToLambert93(p.lat, p.lon);
+                lines.push(`${p.id};${p.type};${p.lat.toFixed(8)};${p.lon.toFixed(8)};${l93.x.toFixed(3)};${l93.y.toFixed(3)}`);
+            });
+            downloadTextFile(lines.join('\n'), 'jalonnage_et_contour.csv', 'text/csv;charset=utf-8;');
+        }
+
         function downloadTextFile(content, filename, mimeType) {
             const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
@@ -2692,17 +3549,387 @@
             a.click();
         }
 
+        // ============================================================================
+        // 9e. OUTILS DE MESURE & JALONNAGE DE PARCELLE (ONGLET 4)
+        // ============================================================================
+        
+        function toggleMeasureMode() {
+            state.measureMode = !state.measureMode;
+            state.contourMode = false;
+            state.isSelectingJalonEdge = false;
+            updateModeButtonsUI();
+            if (state.measureMode) {
+                showToast("Mode Mesure : Cliquez sur la carte ou l'antenne");
+            }
+        }
+        
+        function clearMeasure() {
+            state.measurePoints = [];
+            layerMeasure.clearLayers();
+            document.getElementById('measure-val').textContent = '0.00 m';
+        }
+
+        function addMeasurePoint(lat, lon) {
+            state.measurePoints.push({lat, lon});
+            renderMeasure();
+        }
+        
+        function addMeasurePointAntenna() {
+            addMeasurePoint(state.rover.lat, state.rover.lon);
+        }
+
+        function renderMeasure() {
+            layerMeasure.clearLayers();
+            if (state.measurePoints.length === 0) return;
+            
+            const latlngs = state.measurePoints.map(p => [p.lat, p.lon]);
+            L.polyline(latlngs, {color: '#eab308', weight: 3, dashArray: '4,4'}).addTo(layerMeasure);
+            
+            state.measurePoints.forEach(p => {
+                L.circleMarker([p.lat, p.lon], {radius: 4, color: '#ca8a04', fillColor: '#fef08a', fillOpacity: 1}).addTo(layerMeasure);
+            });
+            
+            if (state.measurePoints.length > 1) {
+                let distTotal = 0;
+                for (let i=0; i<state.measurePoints.length-1; i++) {
+                    const p1 = state.measurePoints[i], p2 = state.measurePoints[i+1];
+                    const dA = distanceAndAzimuth(p1.lat, p1.lon, p2.lat, p2.lon);
+                    distTotal += dA.dist;
+                }
+                document.getElementById('measure-val').textContent = distTotal.toFixed(2) + ' m';
+            }
+            
+            layerMeasure.bringToFront();
+        }
+
+        // --- JALONNAGE & CONTOUR ---
+        function toggleContourMode() {
+            state.contourMode = !state.contourMode;
+            state.measureMode = false;
+            state.isSelectingJalonEdge = false;
+            updateModeButtonsUI();
+            if (state.contourMode) {
+                showToast("Mode Contour : Cliquez sur la carte ou ajoutez via GPS");
+            }
+        }
+
+        function toggleJalonEdgeMode() {
+            if (state.contourPoints.length < 3) {
+                showToast("Tracez d'abord un contour (minimum 3 points)");
+                return;
+            }
+            state.isSelectingJalonEdge = !state.isSelectingJalonEdge;
+            state.contourMode = false;
+            state.measureMode = false;
+            updateModeButtonsUI();
+            if (state.isSelectingJalonEdge) {
+                showToast("Touchez le bord du champ sur la carte pour démarrer le jalonnage depuis ce côté");
+            }
+        }
+
+        function updateModeButtonsUI() {
+            const btnMeasure = document.getElementById('btn-measure');
+            const boxMeasure = document.getElementById('measure-box');
+            const btnContour = document.getElementById('btn-contour-toggle');
+            const btnEdge = document.getElementById('btn-jalon-edge-toggle');
+
+            if (btnMeasure) {
+                btnMeasure.classList.remove('bg-amber-100', 'text-amber-600', 'border-amber-400');
+                btnMeasure.classList.add('bg-white', 'text-slate-700');
+            }
+            if (boxMeasure) boxMeasure.classList.add('hidden');
+            if (btnContour) btnContour.classList.remove('bg-emerald-200', 'border-emerald-400');
+            if (btnEdge) {
+                btnEdge.classList.remove('bg-amber-400', 'border-amber-600', 'text-amber-950');
+                btnEdge.classList.add('bg-amber-100', 'border-amber-400', 'text-amber-800');
+            }
+
+            if (state.measureMode) {
+                if (boxMeasure) boxMeasure.classList.remove('hidden');
+                if (btnMeasure) {
+                    btnMeasure.classList.add('bg-amber-100', 'text-amber-600', 'border-amber-400');
+                    btnMeasure.classList.remove('bg-white', 'text-slate-700');
+                }
+            } else if (state.contourMode) {
+                if (btnContour) btnContour.classList.add('bg-emerald-200', 'border-emerald-400');
+            } else if (state.isSelectingJalonEdge) {
+                if (btnEdge) {
+                    btnEdge.classList.add('bg-amber-400', 'border-amber-600', 'text-amber-950');
+                    btnEdge.classList.remove('bg-amber-100', 'border-amber-400', 'text-amber-800');
+                }
+            }
+        }
+
+        function distToSegment(p, v, w) {
+            let l2 = Math.pow(w.x - v.x, 2) + Math.pow(w.y - v.y, 2);
+            if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+        }
+
+        function selectJalonEdgeMap(lat, lon) {
+            if (state.contourPoints.length < 3) return;
+            let minDist = Infinity;
+            let bestEdge = null;
+            
+            const refLat = state.contourPoints[0].lat;
+            const refLon = state.contourPoints[0].lon;
+            const clickEN = latLonToLocalEN(refLat, refLon, lat, lon);
+
+            for (let i = 0; i < state.contourPoints.length; i++) {
+                let p1 = state.contourPoints[i];
+                let p2 = state.contourPoints[(i+1) % state.contourPoints.length];
+                
+                let en1 = latLonToLocalEN(refLat, refLon, p1.lat, p1.lon);
+                let en2 = latLonToLocalEN(refLat, refLon, p2.lat, p2.lon);
+                
+                let dist = distToSegment(
+                    {x: clickEN.eastM, y: clickEN.northM}, 
+                    {x: en1.eastM, y: en1.northM}, 
+                    {x: en2.eastM, y: en2.northM}
+                );
+                
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestEdge = {p1, p2};
+                }
+            }
+            if (bestEdge) {
+                state.jalonBaseEdge = bestEdge;
+                state.isSelectingJalonEdge = false;
+                updateModeButtonsUI();
+                renderContour();
+                document.getElementById('jalon-edge-status').textContent = 'OUI';
+                document.getElementById('jalon-edge-status').className = 'text-emerald-600 font-extrabold';
+                showToast("Bord de départ sélectionné !");
+            }
+        }
+
+        function addContourPointAntenna() {
+            addContourPointMap(state.rover.lat, state.rover.lon);
+        }
+
+        function addContourPointMap(lat, lon) {
+            state.contourPoints.push({lat, lon});
+            renderContour();
+        }
+
+        function clearContour() {
+            state.contourPoints = [];
+            state.jalonBaseEdge = null;
+            const edgeStatus = document.getElementById('jalon-edge-status');
+            if (edgeStatus) {
+                edgeStatus.textContent = 'NON';
+                edgeStatus.className = 'text-rose-600 font-extrabold';
+            }
+            renderContour();
+            layerJalonnage.clearLayers();
+        }
+
+        function renderContour() {
+            layerContour.clearLayers();
+            if (state.contourPoints.length === 0) {
+                document.getElementById('contour-count').textContent = 0;
+                return;
+            }
+            const pts = state.contourPoints.map(p => [p.lat, p.lon]);
+            L.polyline(pts, {color: '#9333ea', weight: 2}).addTo(layerContour);
+            if (pts.length > 2) {
+                L.polyline([pts[pts.length-1], pts[0]], {color: '#9333ea', weight: 2, dashArray: '5,5'}).addTo(layerContour);
+            }
+            
+            // Affichage du bord de départ sélectionné
+            if (state.jalonBaseEdge) {
+                L.polyline([
+                    [state.jalonBaseEdge.p1.lat, state.jalonBaseEdge.p1.lon],
+                    [state.jalonBaseEdge.p2.lat, state.jalonBaseEdge.p2.lon]
+                ], {color: '#f59e0b', weight: 5, opacity: 1}).addTo(layerContour);
+            }
+
+            pts.forEach((pt) => {
+                L.circleMarker(pt, {radius: 4, color: '#7e22ce', fillColor: '#c084fc', fillOpacity: 1}).addTo(layerContour);
+            });
+            document.getElementById('contour-count').textContent = pts.length;
+        }
+
+        // Fonction mathématique pour générer des angles purs à l'intérieur du champ
+        function insetPolygon(pts, dist) {
+            let area = 0;
+            for(let i=0; i<pts.length; i++) {
+                let p1 = pts[i], p2 = pts[(i+1)%pts.length];
+                area += (p1.x * p2.y - p2.x * p1.y);
+            }
+            let isCCW = area > 0;
+            let sign = isCCW ? 1 : -1;
+
+            let insetPts = [];
+            for(let i=0; i<pts.length; i++) {
+                let p0 = pts[(i - 1 + pts.length) % pts.length];
+                let p1 = pts[i];
+                let p2 = pts[(i + 1) % pts.length];
+
+                let dx1 = p1.x - p0.x, dy1 = p1.y - p0.y;
+                let len1 = Math.hypot(dx1, dy1) || 1;
+                let nx1 = -dy1 / len1 * sign;
+                let ny1 = dx1 / len1 * sign;
+
+                let dx2 = p2.x - p1.x, dy2 = p2.y - p1.y;
+                let len2 = Math.hypot(dx2, dy2) || 1;
+                let nx2 = -dy2 / len2 * sign;
+                let ny2 = dx2 / len2 * sign;
+
+                let p0_shift = { x: p0.x + nx1 * dist, y: p0.y + ny1 * dist };
+                let p1_shift1 = { x: p1.x + nx1 * dist, y: p1.y + ny1 * dist };
+                let p1_shift2 = { x: p1.x + nx2 * dist, y: p1.y + ny2 * dist };
+                let p2_shift = { x: p2.x + nx2 * dist, y: p2.y + ny2 * dist };
+
+                let det = nx1 * ny2 - ny1 * nx2; 
+                if (Math.abs(det) < 1e-4) { 
+                    insetPts.push(p1_shift1);
+                } else {
+                    let A1 = p1_shift1.y - p0_shift.y;
+                    let B1 = p0_shift.x - p1_shift1.x;
+                    let C1 = A1 * p0_shift.x + B1 * p0_shift.y;
+
+                    let A2 = p2_shift.y - p1_shift2.y;
+                    let B2 = p1_shift2.x - p2_shift.x;
+                    let C2 = A2 * p1_shift2.x + B2 * p1_shift2.y;
+
+                    let detL = A1 * B2 - A2 * B1;
+                    if (Math.abs(detL) > 1e-6) {
+                        let ix = (B2 * C1 - B1 * C2) / detL;
+                        let iy = (A1 * C2 - A2 * C1) / detL;
+                        insetPts.push({x: ix, y: iy});
+                    } else {
+                        insetPts.push(p1_shift1);
+                    }
+                }
+            }
+            return insetPts;
+        }
+
+        function computeJalonnage() {
+            if (state.contourPoints.length < 3) {
+                showToast("Ajoutez au moins 3 points pour le contour");
+                return;
+            }
+            if (!state.jalonBaseEdge) {
+                showToast("Veuillez d'abord choisir le bord de départ sur la carte (Bouton 'Choisir Bord Départ')");
+                return;
+            }
+
+            const wM = parseFloat(document.getElementById('jalon-width').value) || 24.0;
+            const headlands = parseFloat(document.getElementById('jalon-headlands').value) || 1;
+            const arretDist = parseFloat(document.getElementById('jalon-headland-dist').value) || 36.0;
+
+            layerJalonnage.clearLayers();
+            state.jalonStakes = [];
+
+            let bestP1 = state.jalonBaseEdge.p1;
+            let bestP2 = state.jalonBaseEdge.p2;
+            let contourPts = state.contourPoints;
+
+            // Matrice de projection mathématique
+            let azRad = degToRad(distanceAndAzimuth(bestP1.lat, bestP1.lon, bestP2.lat, bestP2.lon).az);
+            let uE = Math.sin(azRad), uN = Math.cos(azRad);
+            let vE = Math.cos(azRad), vN = -Math.sin(azRad);
+
+            let localPts = contourPts.map(pt => {
+                let {eastM, northM} = latLonToLocalEN(bestP1.lat, bestP1.lon, pt.lat, pt.lon);
+                return {x: eastM * uE + northM * uN, y: eastM * vE + northM * vN};
+            });
+
+            // S'assurer que Y pointe vers l'intérieur du champ
+            let sumY = localPts.reduce((acc, p) => acc + p.y, 0);
+            if (sumY < 0) {
+                localPts.forEach(p => p.y = -p.y);
+                vE = -vE;
+                vN = -vN;
+            }
+
+            let passNum = 1;
+
+            // 1. Tours de cour (Fourrières) & Extraction des vrais 4 coins
+            for (let i = 0; i < headlands; i++) {
+                let offset = i * wM + wM / 2;
+                let insetPoly = insetPolygon(localPts, offset);
+                
+                let latLons = insetPoly.map(p => localENToLatLon(bestP1.lat, bestP1.lon, p.x*uE + p.y*vE, p.x*uN + p.y*vN));
+                latLons.push(latLons[0]); // Fermer le polygone
+                L.polyline(latLons.map(ll => [ll.lat, ll.lon]), { color: '#3b82f6', weight: 2 }).addTo(layerJalonnage);
+
+                // Ajout exclusif des angles pour le piquetage
+                insetPoly.forEach((p, idx) => {
+                    let ll = localENToLatLon(bestP1.lat, bestP1.lon, p.x*uE + p.y*vE, p.x*uN + p.y*vN);
+                    state.jalonStakes.push({id: `F-T${i+1}-C${idx+1}`, trialName: 'Jalonnage', type: 'COIN_FOURRIERE', distFromAB: offset, alongM: p.x, lat: ll.lat, lon: ll.lon});
+                });
+            }
+
+            // 2. Longs Tours (Calcul strict)
+            // On commence TOUJOURS par le bord sélectionné
+            let startCross = headlands * wM + wM / 2;
+            let maxC = Math.max(...localPts.map(p => p.y));
+
+            // Enveloppe d'arrêt (contour diminué de la distance d'arrêt)
+            let arretPoly = insetPolygon(localPts, arretDist);
+
+            let passes = [];
+            for (let c = startCross; c <= maxC; c += wM) passes.push(c);
+
+            passes.forEach(c => {
+                let inters = [];
+                for (let i = 0; i < arretPoly.length; i++) {
+                    let p1 = arretPoly[i], p2 = arretPoly[(i+1)%arretPoly.length];
+                    if ((p1.y <= c && p2.y >= c) || (p2.y <= c && p1.y >= c)) {
+                        if (p1.y !== p2.y) {
+                            let x = p1.x + (p2.x - p1.x) * (c - p1.y) / (p2.y - p1.y);
+                            inters.push(x);
+                        }
+                    }
+                }
+                inters.sort((a,b) => a-b);
+
+                // Tracer la ligne et créer les piquets
+                for (let i = 0; i < inters.length - 1; i += 2) {
+                    let aStart = inters[i];
+                    let aEnd = inters[i+1];
+                    if (aEnd > aStart + 0.1) {
+                        let ll1 = localENToLatLon(bestP1.lat, bestP1.lon, aStart*uE + c*vE, aStart*uN + c*vN);
+                        let ll2 = localENToLatLon(bestP1.lat, bestP1.lon, aEnd*uE + c*vE, aEnd*uN + c*vN);
+                        L.polyline([[ll1.lat, ll1.lon], [ll2.lat, ll2.lon]], { color: '#10b981', weight: 2 }).addTo(layerJalonnage);
+
+                        state.jalonStakes.push({id: `PASS-${passNum}-DEBUT`, trialName: 'Jalonnage', type: 'PASSAGE_PULVE', distFromAB: c, alongM: aStart, lat: ll1.lat, lon: ll1.lon});
+                        state.jalonStakes.push({id: `PASS-${passNum}-FIN`, trialName: 'Jalonnage', type: 'PASSAGE_PULVE', distFromAB: c, alongM: aEnd, lat: ll2.lat, lon: ll2.lon});
+                        passNum++;
+                    }
+                }
+            });
+
+            // Met à jour la liste des piquets proprement (suppression des anciens)
+            mergeAndRenderStakes();
+            
+            const jb = document.getElementById('jalon-results-box');
+            const jc = document.getElementById('jalon-pass-count');
+            if(jb && jc) {
+                jb.classList.remove('hidden');
+                jc.textContent = (passNum - 1);
+            }
+            showToast("Jalonnage calculé avec succès !");
+        }
+
         function switchStep(stepNum) {
             state.step = stepNum;
-            for (let i = 1; i <= 4; i++) {
+            for (let i = 1; i <= 5; i++) {
                 const panel = document.getElementById(`step-panel-${i}`);
                 const btn = document.getElementById(`step-btn-${i}`);
+                if (!panel || !btn) continue;
                 if (i === stepNum) {
                     panel.classList.remove('hidden');
-                    btn.className = "py-2 px-1.5 rounded-lg text-[11px] font-extrabold flex flex-col items-center gap-0.5 border border-emerald-600 bg-emerald-600 text-white shadow-sm transition";
+                    btn.className = "py-2 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-extrabold flex flex-col items-center gap-0.5 border border-emerald-600 bg-emerald-600 text-white shadow-sm transition";
                 } else {
                     panel.classList.add('hidden');
-                    btn.className = "py-2 px-1.5 rounded-lg text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition";
+                    btn.className = "py-2 px-1.5 rounded-lg text-[10px] sm:text-[11px] font-bold flex flex-col items-center gap-0.5 border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition";
                 }
             }
         }
